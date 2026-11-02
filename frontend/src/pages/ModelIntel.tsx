@@ -1,9 +1,9 @@
 import { modelInfo, modelMetrics } from "@/lib/data";
 import { motion } from "framer-motion";
 import { CloudRain, Database, GitBranch, Server, Sparkles } from "lucide-react";
-import { Ch, UrbanFlowMark } from "@/components/ui";
+import { Ch, UrbanFlowMark, useApp } from "@/components/ui";
 import { PageHead } from "@/pages/ForecastStudio";
-const PIPELINE: { n: string; t: string; s: string; Icon?: typeof Database }[] = [
+const BASE_PIPELINE: { n: string; t: string; s: string; Icon?: typeof Database }[] = [
   { n: "01", t: "2016 Yellow Taxi observations", s: "FILTERED COMPLETED YELLOW TAXI TRIPS", Icon: Database },
   { n: "02", t: "Observation Validation", s: "DENSE 15-MINUTE PANEL · COMPLETE CAUSAL CONTEXT", Icon: Sparkles },
   { n: "03", t: "MiniBatch K-Means", s: "ONLINE CLUSTERING OVER PICKUP COORDINATES", Icon: GitBranch },
@@ -15,8 +15,12 @@ const PIPELINE: { n: string; t: string; s: string; Icon?: typeof Database }[] = 
   { n: "09", t: "UrbanFlow Frontend", s: "REACT + VITE CONTROL INTERFACE", Icon: Server },
 ];
 export default function ModelIntel() {
- const metrics=modelMetrics.selected.primary;
- const METRICS=[{k:'WAPE',v:metrics.WAPE.toFixed(2),unit:'%',note:'June 2016 cumulative 12-hour error; 55 origins'}, {k:'MAE',v:metrics.MAE.toFixed(2),unit:'',note:'Retained trips per step'}, {k:'RMSE',v:metrics.RMSE.toFixed(2),unit:'',note:'Root mean squared error'}, {k:'R²',v:metrics.R2.toFixed(4),unit:'',note:'June 2016 cumulative 12-hour score'}];
+ const {modelVariant}=useApp();
+ const weatherMode=modelVariant==='weather';
+ const info=(weatherMode?modelInfo.variants?.weather:undefined)??modelInfo;
+ const metrics=((weatherMode?modelMetrics.variants?.weather:undefined)??modelMetrics.selected).primary;
+ const PIPELINE=BASE_PIPELINE.map(node=>node.n==='05'?{...node,t:`${info.feature_count} Fitted Features`,s:weatherMode?'46 DEMAND/TIME FEATURES + 6 LAGGED WEATHER FEATURES':node.s}:node);
+ const METRICS=[{k:'WAPE',v:metrics.WAPE.toFixed(2),unit:'%',note:weatherMode?'June reused diagnostic data; 55 origins':'June 2016 cumulative 12-hour error; 55 origins'}, {k:'MAE',v:metrics.MAE.toFixed(2),unit:'',note:'Retained trips per step'}, {k:'RMSE',v:metrics.RMSE.toFixed(2),unit:'',note:'Root mean squared error'}, {k:'R²',v:metrics.R2.toFixed(4),unit:'',note:'June 2016 cumulative 12-hour score'}];
   return (
     <div className="pb-20">
       <PageHead
@@ -27,7 +31,7 @@ export default function ModelIntel() {
             INSIDE <span className="accent">THE ENGINE.</span>
           </>
         }
-        sub="Frozen v4 model, genuine 2016 observations, fifteen-minute historical inference over HTTP."
+        sub={weatherMode?"Experimental weather-aware model: six lagged ERA5 inputs. June results reuse spent diagnostic data; they are not a fresh test.":"Frozen v4 model with genuine historical weather context; fifteen-minute inference over HTTP."}
       />
       {/* ---------------- PIPELINE ---------------- */}
       <div className="grid grid-cols-1 gap-px bg-white/10 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -76,7 +80,7 @@ export default function ModelIntel() {
                         <CloudRain size={15} className="shrink-0 text-volt" />
                         <div>
                           <div className="display text-[15px] leading-none text-chalk">
-                            WEATHER EXCLUDED
+                            {weatherMode?"WEATHER INPUT ACTIVE":"WEATHER CONTEXT"}
                           </div>
                           <div className="stencil mt-1" style={{ fontSize: 7.5 }}>
                             UNAVAILABLE IN V4
@@ -86,7 +90,7 @@ export default function ModelIntel() {
                     </div>
                     <div className="absolute left-0 top-[14px] hidden -translate-y-1/2 sm:block">
                       <span className="stencil" style={{ color: "#51B8FF" }}>
-                        WEATHER SIDE INPUT → STEP 05
+                        {weatherMode?"6 LAGGED FEATURES → STEP 05":"SELECT WEATHER-AWARE TO ENABLE"}
                       </span>
                     </div>
                   </div>
@@ -248,10 +252,10 @@ export default function ModelIntel() {
               {[
                 ["ALGORITHM", "XGBoost + calendar regressor"],
                 ["CLUSTERING", "MiniBatch K-Means, k = 30"],
-                ["FEATURES", `${modelInfo.feature_count} fitted`],
+                ["FEATURES", `${info.feature_count} fitted`],
                 ["STEP", "15 minutes"],
                 ["BACKEND", "FastAPI · POST /predict"],
-                ["WEATHER", "Unavailable / excluded"],
+                ["WEATHER", weatherMode?"6 lagged ERA5 features":"Context only / not a v4 input"],
                 ["DEPLOY", "Docker · Local historical runtime"],
                 ["FRONTEND", "React · Vite · Tailwind"],
               ].map(([k, v]) => (
@@ -292,10 +296,10 @@ export default function ModelIntel() {
             {[
               ["2016", "OBSERVATION YEAR"],
               ["30", "DEMAND REGIONS"],
-              ["46", "FEATURES"],
+              [String(info.feature_count), "FEATURES"],
               ["15", "MINUTE STEPS"],
-              ["11.61%", "TEST WAPE"],
-              ["0.9605", "TEST R²"],
+              [`${metrics.WAPE.toFixed(2)}%`, weatherMode?"DIAGNOSTIC WAPE":"TEST WAPE"],
+              [metrics.R2.toFixed(4), weatherMode?"DIAGNOSTIC R²":"TEST R²"],
             ].map(([v, l]) => (
               <div key={l} className="rule-t pt-2.5">
                 <div className="mono-num text-[19px] text-signal">{v}</div>

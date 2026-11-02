@@ -30,7 +30,7 @@ const NAV: { r: Route; label: string; idx: string; Icon: typeof Gauge }[] = [
   { r: "model", label: "Model Intelligence", idx: "05", Icon: Cpu },
 ];
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const { route, go, region } = useApp();
+  const { route, go, region, modelVariant, setModelVariant } = useApp();
   const clock = useNyClock(1000);
   const status = useLink();
   const [open, setOpen] = useState(false);
@@ -202,7 +202,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               <span className="mono-num text-[11px] text-acid">
                 {String(reg.id).padStart(2, "0")}
               </span>
-              <span className="text-[12px] text-chalk">{reg.name}</span>
+              <span className="max-w-[280px] truncate text-[12px] text-chalk" title={reg.name}>{reg.name}</span>
             </span>
             <div className="ml-auto flex items-center gap-3 sm:gap-5">
               <span className="hidden items-center gap-2 md:flex">
@@ -215,6 +215,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 {nyStamp(clock).slice(0, 16)} <span className="text-steel/60">NY</span>
               </span>
             </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-white/10 px-4 py-2">
+            <label htmlFor="forecast-model" className="stencil">FORECAST MODEL</label>
+            <select id="forecast-model" aria-label="Forecast model" value={modelVariant} onChange={e=>setModelVariant(e.target.value as "baseline"|"weather")} className="max-w-full border border-white/20 bg-graphite px-2 py-1 text-[12px] text-chalk">
+              <option value="baseline">Validated v4</option>
+              <option value="weather">Weather-aware · experimental</option>
+            </select>
+            <span className="text-[11px] text-steel">{modelVariant==='weather'?'6 lagged weather features · historical ERA5 reconstruction':'Weather context available · original v4 predictions'}</span>
           </div>
           {/* connection error strip */}
           {status?.error && (

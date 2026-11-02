@@ -1,3 +1,4 @@
+import WeatherDetails from "@/components/WeatherDetails";
 import Unavailable from "@/components/Unavailable";
 import { useMemo } from "react";
 import { ArrowUpRight, CloudRain, Thermometer } from "lucide-react";
@@ -8,7 +9,7 @@ import { PageHead } from "@/pages/ForecastStudio";
 import {
   REGIONS,
   computeInsights,
-  unavailableWeather,
+  displayWeather,
   nyDayName,
   regionById,
 } from "@/lib/data";
@@ -22,7 +23,7 @@ export default function Overview() {
   const { error, data, refetch } = useForecast(region, date, time, 16);
   const reg = regionById(region);
   const ins = useMemo(() => computeInsights(data?.forecast ?? []), [data?.forecast]);
-  const weather = unavailableWeather(date);
+  const weather = displayWeather(data?.weather);
   const hist = data?.history ?? [];
   const ranking = useMemo(() => {
     const base = data?.heatmap ?? [];
@@ -93,7 +94,7 @@ export default function Overview() {
             {[
               ["MEAN FORECAST", ins.average.toFixed(1), "text-signal"],
               ["PEAK IN HORIZON", ins.peak.toFixed(1), "text-acid"],
-              ["PEAK AT", ins.peakTime.slice(11), "text-chalk"],
+              ["PEAK AT", ins.peakTime.slice(11,16), "text-chalk"],
               ["HISTORY DRIFT", `${recentDelta >= 0 ? "+" : ""}${recentDelta}`, "text-volt"],
             ].map(([l, v, c]) => (
               <div key={l} className="bg-graphite px-4 py-3.5">
@@ -119,6 +120,7 @@ export default function Overview() {
                   {ranking.map((x, i) => (
                     <tr
                       key={x.r.id}
+                      data-region={x.r.id}
                       className={`rule-b cursor-pointer transition-colors hover:bg-white/[0.05] ${
                         x.r.id === region ? "bg-signal/[0.09]" : ""
                       }`}
@@ -243,13 +245,11 @@ export default function Overview() {
                   {weather.condition}
                 </div>
                 <div className="stencil mt-1">
-                  {data && !data.demo ? "Not used by v4" : "Not used by v4"}
+                  {data?.weather?.model_used ? "USED BY WEATHER MODEL" : "HISTORICAL WEATHER"}
                 </div>
               </div>
             </div>
-            <p className="mt-2.5 text-[12px] leading-snug text-steel">
-              Weather is unavailable and excluded from the frozen v4 model.
-            </p>
+            <WeatherDetails context={data?.weather} />
           </div>
           <div className="mt-6">
             <Ch index="CTX-04" label="FORECAST ORIGIN" />

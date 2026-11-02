@@ -29,7 +29,7 @@ test('forecast parameters, all horizons, genuine history and CSV match the real 
  await expect(date).toHaveAttribute('min','2016-05-31');
  await expect(date).toHaveAttribute('max','2016-07-01');
  await date.fill('2016-06-15');await time.fill('12:00');
- await page.locator('select').first().selectOption('3');
+ await page.locator('select:not([aria-label="Forecast model"])').first().selectOption('3');
  for(const [label,h] of [['0.25 hour',1],['1 hour',4],['3 hours',12],['6 hours',24],['12 hours',48]] as const){
    const buttons=page.getByRole('button').filter({hasText:new RegExp(`^${h===1?'0.25 hours':label}`)});
    if(h===1)await page.getByRole('button').filter({hasText:'1 steps'}).click();
@@ -74,7 +74,7 @@ test('model page shows backend metrics and excluded capabilities honestly',async
  await open(page,'model');
  await expect(page.getByText('11.61',{exact:true})).toBeVisible();
  await expect(page.getByText('14.56',{exact:true})).toBeVisible();
- await expect(page.getByText('Unavailable / excluded',{exact:true})).toBeVisible();
+ await expect(page.getByText('Context only / not a v4 input',{exact:true})).toBeVisible();
  await expect(page.locator('body')).not.toContainText('9.41');
 });
 

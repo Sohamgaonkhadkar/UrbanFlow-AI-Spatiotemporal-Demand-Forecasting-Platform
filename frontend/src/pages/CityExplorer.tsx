@@ -38,7 +38,7 @@ function Sparkline({ values, peakIndex }: { values: number[]; peakIndex: number 
   );
 }
 export default function CityExplorer() {
-  const { region, setRegion, go } = useApp();
+  const { region, setRegion, go, modelVariant } = useApp();
   const [q, setQ] = useState("");
   const [tiles, setTiles] = useState<TileStatus>("loading");
   const mapApi = useRef<GeoMapHandle | null>(null);
@@ -47,7 +47,7 @@ export default function CityExplorer() {
   const [layer,setLayer]=useState<'observed'|'forecast'>('observed');
   const [overlay,setOverlay]=useState<{datetime:string;activity:{region:number;activity:number}[]}|null>(null);
   const [overlayError,setOverlayError]=useState('');
-  useEffect(()=>{let alive=true;setOverlay(null);setOverlayError('');api<{datetime:string;activity:{region:number;activity:number}[]}>(`/activity?datetime=${encodeURIComponent(`${now.date}T${now.time}:00`)}&mode=${layer}`).then(d=>{if(alive)setOverlay(d)}).catch(e=>{if(alive)setOverlayError(e.message)});return()=>{alive=false}},[layer,now.date,now.time]);
+  useEffect(()=>{let alive=true;setOverlay(null);setOverlayError('');api<{datetime:string;activity:{region:number;activity:number}[]}>(`/activity?datetime=${encodeURIComponent(`${now.date}T${now.time}:00`)}&mode=${layer}&model_variant=${modelVariant}`).then(d=>{if(alive)setOverlay(d)}).catch(e=>{if(alive)setOverlayError(e.message)});return()=>{alive=false}},[layer,now.date,now.time,modelVariant]);
   const reg = regionById(region);
   const activity = useMemo(() => {
     const m: Record<number, number> = {};
@@ -186,7 +186,7 @@ export default function CityExplorer() {
             {filtered.length === 0 && (
               <li className="px-4 py-10 text-center">
                 <p className="text-[14px] text-chalk">No region matches “{q}”.</p>
-                <p className="mt-1 text-[12.5px] text-steel">Try a sector name or number from 0 to 29.</p>
+                <p className="mt-1 text-[12.5px] text-steel">Try a neighborhood, borough or region number from 0 to 29.</p>
                 <button type="button" onClick={() => setQ("")} className="mt-3 text-[13px] text-signal hover:underline">
                   Clear search
                 </button>

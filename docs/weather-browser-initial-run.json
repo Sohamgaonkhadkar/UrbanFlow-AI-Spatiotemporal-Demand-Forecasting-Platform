@@ -1,0 +1,11 @@
+{
+  "stats": {
+    "startTime": "2026-11-02T17:39:52.609Z",
+    "duration": 288706.47000000003,
+    "expected": 38,
+    "skipped": 0,
+    "unexpected": 1,
+    "flaky": 0
+  },
+  "note": "38 of 39 passed initially. One selector assumed unique neighborhood names; corrected to target the stable region ID and rerun separately."
+}

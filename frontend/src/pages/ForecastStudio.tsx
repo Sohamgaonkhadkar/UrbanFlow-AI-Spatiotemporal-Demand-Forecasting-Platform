@@ -1,14 +1,16 @@
+import WeatherDetails from "@/components/WeatherDetails";
 import { useMemo, useState } from "react";
 import { AlertTriangle, ChevronDown, Download, Loader2, Play } from "lucide-react";
 import ForecastChart from "@/components/ForecastChart";
 import { Ch, Field, SignalButton, inputCls, useApp } from "@/components/ui";
 import {
   HORIZONS,
+  modelMetrics,
   nyNowSlot,
   selectOrigin,
   REGIONS,
   computeInsights,
-  unavailableWeather,
+  displayWeather,
   exportCsv,
   forecastCsvRows,
   regionById,
@@ -80,7 +82,7 @@ export default function ForecastStudio() {
     () => computeInsights(data?.forecast ?? []),
     [data?.forecast]
   );
-  const weather = unavailableWeather(submitted.date);
+  const weather = displayWeather(data?.weather);
   const run = () => {
     selectOrigin(origin.date,origin.time);
     setSubmitted({ region, ...origin, steps });
@@ -212,6 +214,7 @@ export default function ForecastStudio() {
             )}
           </div>
           {/* context block */}
+          <WeatherDetails context={data?.weather} />
           <div className="mt-7">
             <Ch index="CTX" label="RUNTIME CONTEXT" />
             <dl className="mt-3 space-y-2.5">
@@ -265,7 +268,8 @@ export default function ForecastStudio() {
                         reg,
                         `${submitted.date} ${submitted.time}`,
                         rows,
-                        !!data?.demo
+                        !!data?.demo,
+                        data?.weather?.model_used ? "weather" : "baseline"
                       )
                     )
                   }
@@ -309,7 +313,7 @@ export default function ForecastStudio() {
                   ["FIRST PREDICTED", ins.first.toFixed(1), "PICKUPS / 15 MIN", "text-signal"],
                   ["AVERAGE DEMAND", ins.average.toFixed(1), "MEAN PER STEP", "text-chalk"],
                   ["PEAK DEMAND", ins.peak.toFixed(1), "MAX IN HORIZON", "text-acid"],
-                  ["PEAK AT", ins.peakTime.slice(11), "NEW YORK LOCAL", "text-volt"],
+                  ["PEAK AT", ins.peakTime.slice(11,16), "NEW YORK LOCAL", "text-volt"],
                 ].map(([l, v, s, c]) => (
                   <div key={l} className="bg-graphite p-4">
                     <div className="stencil stencil-signal">{l}</div>
@@ -329,8 +333,10 @@ export default function ForecastStudio() {
                 predicted number of taxi pickups starting in {reg.name} during that
                 15-minute window. Steps are forecast recursively, so later steps build on
                 earlier predictions and carry more uncertainty. For reference, the model's
-                held-out WAPE is 11.61% — a historical test metric, not a confidence bound
-                for this run.
+                {data?.weather?.model_used
+                  ? `weather-mode June diagnostic WAPE is ${modelMetrics.variants?.weather?.primary.WAPE.toFixed(2)}% on reused data`
+                  : `frozen v4 June test WAPE is ${modelMetrics.selected.primary.WAPE.toFixed(2)}%`}
+                . This aggregate error is not a confidence bound for this run.
               </p>
             )}
             {/* prediction table */}

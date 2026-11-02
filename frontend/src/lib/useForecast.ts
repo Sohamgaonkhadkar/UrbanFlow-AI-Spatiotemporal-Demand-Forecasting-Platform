@@ -1,3 +1,4 @@
+import { useApp } from "@/components/ui";
 import { useEffect, useRef, useState } from "react";
 import { requestForecast, type PredictionResponse } from "@/lib/data";
 import { setLinkState } from "@/lib/link";
@@ -12,6 +13,7 @@ export function useForecast(
   timeStr: string,
   steps: number
 ) {
+  const { modelVariant } = useApp();
   const [state, setState] = useState<ForecastState>({
     loading: true,
     error: null,
@@ -29,6 +31,7 @@ export function useForecast(
     const timer = setTimeout(() => {
       requestForecast({
         region,
+        model_variant: modelVariant,
         datetime: `${dateStr}T${timeStr}:00`,
         horizon: steps,
       })
@@ -47,6 +50,6 @@ export function useForecast(
       alive = false;
       clearTimeout(timer);
     };
-  }, [region, dateStr, timeStr, steps, nonce]);
+  }, [region, dateStr, timeStr, steps, nonce, modelVariant]);
   return { ...state, refetch: () => setNonce((n) => n + 1) };
 }

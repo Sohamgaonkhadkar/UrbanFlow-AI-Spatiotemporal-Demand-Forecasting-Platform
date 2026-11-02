@@ -8,6 +8,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from ml.advanced.core import HISTORY
+from weather_context import context as weather_context
 
 TZ = 'America/New_York'
 STEP = pd.Timedelta(minutes=15)
@@ -56,6 +57,23 @@ class Store:
         self.default = min(self.maximum-48*STEP, self.minimum+(self.maximum-self.minimum)/2).floor('15min')
         self.geo = json.loads((self.folder/'geography.json').read_text())
         self.evaluation = json.loads((self.folder/'final_test_results.json').read_text())
+        weather_folder = self.folder.parent/'weather_bundle'
+        weather_manifest = json.loads((weather_folder/'manifest.json').read_text())
+        for name, digest in weather_manifest['sha256'].items():
+            if hashlib.sha256((weather_folder/name).read_bytes()).hexdigest() != digest:
+                raise RuntimeError('Weather bundle checksum mismatch')
+        self.weather_bundle = joblib.load(weather_folder/'candidate_weather.joblib')
+        self.weather_model = self.weather_bundle['model']
+        self.weather_schema = json.loads((weather_folder/'feature_schema.json').read_text())
+        if self.weather_model.base.feature_name_ != self.weather_schema['feature_columns']:
+            raise RuntimeError('Weather fitted feature schema mismatch')
+        self.weather_data = pd.read_parquet(weather_folder/'weather_hourly.parquet')
+        self.weather_metrics = json.loads((weather_folder/'june_diagnostics.json').read_text())
+        self.weather_selection = json.loads((weather_folder/'selection.json').read_text())
+        self.region_labels = json.loads((self.folder.parent/'data/region_labels.json').read_text(encoding='utf-8'))['labels']
+        points = np.asarray(self.geo['centers'])*self.geo['scale']+self.geo['mean']
+        if len(self.region_labels) != 30 or any(item['id'] != i or not np.allclose([item['lon'],item['lat']],points[i],rtol=0,atol=1e-12) for i,item in enumerate(self.region_labels)):
+            raise RuntimeError('Area labels do not match the frozen centroid mapping')
         self.cache = OrderedDict()
         self.lock = RLock()
         self.executions = 0
@@ -66,7 +84,7 @@ class Store:
                     origin_min=self.minimum.isoformat(), origin_max=self.maximum.isoformat(),
                     full_12h_actuals_origin_max=(self.maximum-48*STEP).isoformat(),
                     default_origin=self.default.isoformat(), training_cutoff=self.cutoff.isoformat(),
-                    history_steps=HISTORY, max_horizon=48, retained_trip_count=int(self.wide.to_numpy().sum()), observed_rows=int(self.wide.size), weather_used=False, prediction_intervals_available=False)
+                    history_steps=HISTORY, max_horizon=48, retained_trip_count=int(self.wide.to_numpy().sum()), observed_rows=int(self.wide.size), weather_used=False, weather_available=True, model_variants=["baseline","weather"], default_variant="baseline", prediction_intervals_available=False)
 
     def origin(self, value):
         t = timestamp(value)
@@ -74,19 +92,22 @@ class Store:
             raise InputError(f'Historical origin must be between {self.minimum.isoformat()} and {self.maximum.isoformat()}.')
         return t
 
-    def forecast(self, value, horizon=48):
+    def forecast(self, value, horizon=48, model_variant="baseline"):
         t = self.origin(value)
         if not isinstance(horizon,int) or isinstance(horizon,bool) or not 1 <= horizon <= 48:
             raise InputError('Horizon must be 1–48 quarter-hour steps.')
+        if model_variant not in ['baseline','weather']:
+            raise InputError('Choose baseline or weather model variant.')
+        model = self.weather_model if model_variant == 'weather' else self.model
         with self.lock:
-            key = t.isoformat()
+            key = (model_variant,t.isoformat())
             if key not in self.cache:
                 # Only rows strictly before t are ever passed to the frozen model.
                 history = self.wide.loc[(self.wide.index >= t-HISTORY*STEP) & (self.wide.index < t)]
                 if len(history) != HISTORY:
                     raise InputError('Complete 16-day context is unavailable.')
                 times = pd.date_range(t-HISTORY*STEP, periods=HISTORY+48, freq=STEP)
-                result = np.asarray(self.model.forecast(history.to_numpy(dtype=np.float32), times, np.array([HISTORY]), 48))[0]
+                result = np.asarray(model.forecast(history.to_numpy(dtype=np.float32), times, np.array([HISTORY]), 48))[0]
                 if result.shape != (48,30) or not np.isfinite(result).all() or (result < 0).any():
                     raise RuntimeError('Invalid model output')
                 self.executions += 1
@@ -98,12 +119,14 @@ class Store:
 
     def regions(self):
         points = np.asarray(self.geo['centers'])*np.asarray(self.geo['scale'])+np.asarray(self.geo['mean'])
-        return [dict(id=i, name=f'NYC Sector {i:02d}', borough='Verified cluster centroid', lon=float(p[0]), lat=float(p[1]),
+        return [dict(id=i, name=self.region_labels[i]['name'], borough=self.region_labels[i]['borough'], lon=float(p[0]), lat=float(p[1]),
+                     nta_code=self.region_labels[i]['nta_code'], label_kind=self.region_labels[i]['label_kind'],
+                     label_source='NYC Department of City Planning 2020 Neighborhood Tabulation Areas',
                      coordinate_source='inverse StandardScaler transform of fitted K-means centers', boundaries_available=False)
                 for i,p in enumerate(points)]
 
-    def predict(self, region, value, horizon):
-        t, predictions = self.forecast(value,horizon)
+    def predict(self, region, value, horizon, model_variant="baseline"):
+        t, predictions = self.forecast(value,horizon,model_variant)
         rows = [dict(datetime=(t+k*STEP).isoformat(), prediction=round(float(v),2)) for k,v in enumerate(predictions[:,region])]
         past = self.wide.loc[self.wide.index<t,region].tail(192)
         last = self.wide.loc[self.wide.index<t].iloc[-1]
@@ -111,9 +134,9 @@ class Store:
                     history=[dict(datetime=d.isoformat(),actual=float(v)) for d,v in past.items()],
                     heatmap=[dict(region=int(r),activity=float(v)) for r,v in last.items()],
                     heatmap_datetime=(t-STEP).isoformat(), heatmap_kind='observed',
-                    weather=None, feature_importance=None, alerts=[], demo=False,
-                    metadata=dict(candidate_id=self.bundle['candidate_id'], timezone=TZ, mode='historical',
-                                  weather_used=False, prediction_intervals_available=False, operational_alerts_available=False))
+                    weather=weather_context(self.weather_data,t,model_variant=="weather"), feature_importance=None, alerts=[], demo=False,
+                    metadata=dict(candidate_id=(self.weather_bundle if model_variant=='weather' else self.bundle)['candidate_id'], model_variant=model_variant, timezone=TZ, mode='historical',
+                                  weather_used=model_variant=='weather', prediction_intervals_available=False, operational_alerts_available=False))
 
     def info(self):
         return dict(candidate_id=self.bundle['candidate_id'], architecture='XGBoost + recursive calendar feedback',
@@ -122,12 +145,15 @@ class Store:
                     target='Retained completed NYC Yellow Taxi trips per region per 15-minute bin',
                     limitations=['Historical 2016 benchmark; not a current live service.',
                                  'Post-trip fare, distance and geographic filters; zero-latency observation availability is an idealization.',
-                                 'No weather, calibrated prediction bands, operational alerts or validated whole-model attribution.'],
-                    weather_used=False, prediction_intervals_available=False, feature_importance=None)
+                                 'V4 excludes weather. Optional weather mode uses lagged retrospective ERA5 reanalysis and reused diagnostic windows; not a fresh holdout.',
+                                 'No calibrated prediction bands, operational alerts or validated whole-model attribution.'],
+                    weather_used=False, weather_available=True, prediction_intervals_available=False, feature_importance=None,
+                    variants={'weather':dict(candidate_id=self.weather_bundle['candidate_id'],architecture='XGBoost + calendar feedback + lagged ERA5 weather',feature_count=len(self.weather_schema['feature_columns']),feature_columns=self.weather_schema['feature_columns'],training_cutoff=self.cutoff.isoformat(),weather_used=True,experimental=True,selection=self.weather_selection)})
 
     def metrics(self):
         return dict(period='June 2016', origins=55, points=79200, horizon_steps=48,
                     selected=self.evaluation['windows']['june_primary']['records']['calendar_feedback'],
+                    variants={'weather':self.weather_metrics['records']['weather']},weather_evaluation_note='June is reused diagnostic evidence for weather mode; no independent fresh test.',
                     interpretation='WAPE is error, not accuracy. Cumulative 48-step WAPE differs from the individual lead-48 error. Bootstrap metric CI is not a prediction band.')
 
     def historical(self, region, start=None, end=None):

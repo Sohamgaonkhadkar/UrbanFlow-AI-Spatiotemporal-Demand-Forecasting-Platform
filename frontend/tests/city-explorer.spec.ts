@@ -108,9 +108,9 @@ test("all thirty markers are visible inside the initial city framing", async ({ 
 test("clicking a marker selects the region everywhere", async ({ page, runtimeErrors }) => {
   await openExplorer(page);
   await marker(page, 3).hover();
-  await expect(page.locator(".uf-tooltip")).toContainText("NYC Sector 03");
+  await expect(page.locator(".uf-tooltip")).toContainText("JFK Airport");
   await marker(page, 3).click();
-  await expect(page.getByTestId("selected-region")).toHaveText("NYC Sector 03");
+  await expect(page.getByTestId("selected-region")).toHaveText("JFK Airport");
   await expect(listButton(page, 3)).toHaveAttribute("aria-pressed", "true");
   await expect(marker(page, 3)).toHaveClass(/is-selected/);
   await expect(marker(page, 15)).not.toHaveClass(/is-selected/);
@@ -121,21 +121,21 @@ test("clicking a marker selects the region everywhere", async ({ page, runtimeEr
 test("selecting from the list focuses the map on that region", async ({ page, runtimeErrors }) => {
   await openExplorer(page);
   await listButton(page, 24).click();
-  await expect(page.getByTestId("selected-region")).toHaveText("NYC Sector 24");
+  await expect(page.getByTestId("selected-region")).toHaveText("Park Slope");
   await expect(marker(page, 24)).toHaveClass(/is-selected/);
   await expectMarkerNearMapCentre(page, 24);
-  await expect(page.locator(".uf-marker__label")).toContainText("NYC Sector 24");
+  await expect(page.locator(".uf-marker__label")).toContainText("Park Slope");
   expect(runtimeErrors).toEqual([]);
 });
 
 test("search filters the list and Enter flies to the match", async ({ page, runtimeErrors }) => {
   await openExplorer(page);
   const search = page.getByPlaceholder("Search regions");
-  await search.fill("Sector 0");
-  await expect(page.locator('ul[aria-label="Regions ranked by activity"] button')).toHaveCount(10);
-  await search.fill("NYC Sector 16");
+  await search.fill("Manhattan");
+  await expect(page.locator('ul[aria-label="Regions ranked by activity"] button')).toHaveCount(21);
+  await search.fill("Williamsburg");
   await search.press("Enter");
-  await expect(page.getByTestId("selected-region")).toHaveText("NYC Sector 16");
+  await expect(page.getByTestId("selected-region")).toHaveText("Williamsburg");
   await expectMarkerNearMapCentre(page, 16);
   await search.fill("zzz");
   await expect(page.getByText("No region matches")).toBeVisible();
@@ -202,7 +202,7 @@ test("mobile: map leads the page and markers are tappable", async ({ page, runti
   expect(box.height).toBeGreaterThan(360);
   expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(1);
   await marker(page, 8).click();
-  await expect(page.getByTestId("selected-region")).toHaveText("NYC Sector 08");
+  await expect(page.getByTestId("selected-region")).toHaveText("Upper East Side-Carnegie Hill");
   await expect(marker(page, 8)).toHaveClass(/is-selected/);
   expect(runtimeErrors).toEqual([]);
 });
@@ -223,8 +223,8 @@ test("if basemap tiles fail, an honest schematic outline replaces the black void
   await page.screenshot({ path: "test-results/explorer-tiles-offline.png" });
   // Fitted Midtown centroids can overlap at city-wide zoom. Keyboard selection
   // targets the genuine marker without moving coordinates or forcing a covered click.
-  await page.getByRole('button',{name:'NYC Sector 20, region 20',exact:true}).press('Enter');
-  await expect(page.getByTestId("selected-region")).toHaveText("NYC Sector 20");
+  await page.getByRole('button',{name:'Financial District-Battery Park City, region 20',exact:true}).press('Enter');
+  await expect(page.getByTestId("selected-region")).toHaveText("Financial District-Battery Park City");
   expect(runtimeErrors).toEqual([]);
 });
 
