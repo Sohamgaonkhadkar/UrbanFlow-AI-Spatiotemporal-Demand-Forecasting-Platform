@@ -1,10 +1,45 @@
 # UrbanFlow AI · Historical Forecasting Platform
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![Python 3.14](https://img.shields.io/badge/Python-3.14-3776AB?logo=python&logoColor=white)
+![React 19](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+
+**From validated spatiotemporal research to an interactive historical forecasting
+application: real observations, a frozen model, and a cinematic interface.**
+
 UrbanFlow AI connects a cinematic React interface to a frozen, validated spatiotemporal demand model. It forecasts retained completed NYC Yellow Taxi trips across 30 fitted regions at 15-minute resolution, using genuine 2016 observations. The homepage, Overview, Forecast Studio, City Explorer, Demand Insights and Model Intelligence share the same model and data contract.
 
-This repository is the serving application. The [research repository](https://github.com/Sohamgaonkhadkar/UBER-DEMAND-PREDICTION) contains notebooks, experiments, frozen evaluation evidence and acquisition code. No training is performed on application startup or during a prediction request.
+This repository is the serving application. The [research repository](https://github.com/Sohamgaonkhadkar/UBER-DEMAND-PREDICTION/tree/codex/final-v4-integration-20261102) contains notebooks, experiments, frozen evaluation evidence and acquisition code. No training is performed on application startup or during a prediction request.
 
-![UrbanFlow cinematic homepage](docs/screenshots/home.png)
+![UrbanFlow cinematic homepage](docs/screenshots/home-photos-desktop.png)
+
+## Platform at a glance
+
+| Dimension | Delivered capability |
+|---|---|
+| Forecasting | 30 NYC regions; 15-minute resolution; 1–48 step horizons |
+| Model | Frozen XGBoost + recursive calendar feedback; 46 fitted features |
+| Verified error | 9.7507% WAPE at 15 minutes; 11.6086% cumulative WAPE across 12 hours |
+| Observation panel | 66,874,467 retained historical trips; 524,040 region/time rows |
+| Interface | Cinematic homepage and five connected application pages |
+| Backend | FastAPI with typed requests, causal context validation and a shared joint cache |
+| Reproducibility | Checked-in model, observations, schema, checksums and pinned dependencies |
+| Failure handling | Explicit unavailable/error states; no generated demand fallback |
+
+## Contents
+
+- [Validated model](#validated-model)
+- [Run locally](#run-locally)
+- [Historical coverage and timestamp semantics](#historical-coverage-and-timestamp-semantics)
+- [Data provenance and scope](#data-provenance-and-scope)
+- [Application behavior](#application-behavior)
+- [API](#api)
+- [Validation](#validation)
+- [Containers](#containers)
+- [Troubleshooting](#troubleshooting)
+- [Repository layout and release scope](#repository-layout-and-release-scope)
+- [License and third-party materials](#license-and-third-party-materials)
+
 
 ## Validated model
 
@@ -26,7 +61,16 @@ The exact ledger is exposed at `/model/metrics` and checked in at `backend/bundl
 
 Use Python **3.14** and Node.js **22.12+ or 24**. Both model and observations are included in Git: no raw-data download, API key, research checkout or training job is needed. Only load the trusted checked-in joblib bundle; joblib is an executable serialization format.
 
-From this repository root, in PowerShell:
+The completed platform is currently on `codex/final-v4-integration-20261102`.
+Clone that branch while the default branch retains the earlier version:
+
+```powershell
+git clone --branch codex/final-v4-integration-20261102 https://github.com/Sohamgaonkhadkar/UrbanFlow-AI-Spatiotemporal-Demand-Forecasting-Platform.git Deployment-Platform
+cd Deployment-Platform
+```
+
+From this repository root, create the backend environment and start the API:
+
 
 ```powershell
 py -3.14 -m venv .venv
@@ -77,10 +121,26 @@ Region IDs are the fitted model's IDs. `/regions` computes each centroid as `sca
 - **Demand Insights:** two genuine regional forecasts at one origin/horizon, derived summaries and genuine preceding observations. Past versus predicted summary bars refer to separate intervals, not a forecast-accuracy comparison.
 - **Model Intelligence:** real backend metadata and verified June metrics. Weather, validated whole-model feature attribution, calibrated prediction intervals and operational alerts are unavailable.
 
-The supplied cinematic design retains its original CSS, scene sequence, typography, chart components and animation logic. The five homepage photographs were subsequently refreshed to the exact images shown in the user's reference recording; see [photo provenance](docs/photo-provenance.json). Source photos live in `frontend/src/assets` and are inlined into the build, with matching public copies for existing image URLs. The earlier template hash manifest and baseline screenshots document the original integration before this requested photo refresh. Corrections change data, labels, loading/errors and functional controls. Before/after browser captures and asset hashes are in `docs/visual-baseline`, `docs/screenshots`, `docs/visual-comparison.png` and `docs/template-design-manifest.json`. Original template test sources are archived in `docs/original-template-tests`; adapted behavior tests and genuine-data acceptance tests run from `frontend/tests`.
+The supplied cinematic design retains its original CSS, scene sequence, typography, chart components and animation logic. The five homepage photographs match the approved reference recording; see [photo provenance](docs/photo-provenance.json). Source photos live in `frontend/src/assets` and are inlined into the build, with matching public copies for existing image URLs. The earlier template hash manifest and baseline screenshots document the original integration before this requested photo refresh. Corrections change data, labels, loading/errors and functional controls. Before/after browser captures and asset hashes are in `docs/visual-baseline`, `docs/screenshots`, `docs/visual-comparison.png` and `docs/template-design-manifest.json`. Original template test sources are archived in `docs/original-template-tests`; adapted behavior tests and genuine-data acceptance tests run from `frontend/tests`.
 
-![Forecast Studio](docs/screenshots/forecast.png)
-![City Explorer](docs/screenshots/explorer.png)
+<table>
+  <tr>
+    <td width="50%"><strong>Forecast Studio</strong><br><img src="docs/screenshots/forecast.png" alt="Forecast controls and genuine historical model predictions" width="480"></td>
+    <td width="50%"><strong>City Explorer</strong><br><img src="docs/screenshots/explorer.png" alt="Verified regional centroids and historical activity map" width="480"></td>
+  </tr>
+</table>
+
+<details>
+<summary>View the mobile homepage</summary>
+
+<img src="docs/screenshots/home-photos-mobile.png" alt="UrbanFlow homepage on a mobile viewport" width="300">
+
+</details>
+
+Full browser captures are available in [screenshots](docs/screenshots/). Image
+identity, source links and photographer credits are recorded in
+[photo provenance](docs/photo-provenance.json) and
+[third-party notices](THIRD_PARTY_NOTICES.md).
 
 ## API
 
@@ -101,6 +161,30 @@ The supplied cinematic design retains its original CSS, scene sequence, typograp
 ```json
 {"region": 3, "datetime": "2016-06-15T12:00:00-04:00", "horizon": 48, "mode": "historical"}
 ```
+
+### Make a forecast request
+
+With the backend running, PowerShell:
+
+```powershell
+$body = @{
+  region = 3
+  datetime = '2016-06-15T12:00:00-04:00'
+  horizon = 48
+  mode = 'historical'
+} | ConvertTo-Json
+
+$result = Invoke-RestMethod -Method Post `
+  -Uri 'http://127.0.0.1:8000/predict' `
+  -ContentType 'application/json' `
+  -Body $body
+
+$result.forecast | Select-Object -First 4
+```
+
+The request chooses model region 3 at an explicit New York historical origin.
+The response contains 48 quarter-hour predictions; changing the selected region
+or requesting a shorter horizon reuses the same joint origin trajectory.
 
 `/predict` returns `forecast`, `history`, `heatmap`, `heatmap_datetime`, `heatmap_kind` and explicit capability metadata. Weather and feature importance are `null`; operational alerts are an empty list with availability `false`. Errors return an appropriate HTTP status and safe message, never replacement values or internal filesystem paths.
 
@@ -129,6 +213,14 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
+Recorded integration results: **22 deployment tests**, **37 full browser
+tests**, **150 actual HTTP forecasts**, and **eight invalid-request rejections**.
+The subsequent photo refresh verified all five exact image hashes and production
+inlining, plus the 21 existing cinematic/navigation checks; one initial homepage
+load timeout passed twice on an unchanged rerun. See the
+[integration report](FINAL_INTEGRATION_REPORT.md) and
+[photo refresh record](docs/PHOTO_REFRESH.md) for execution details.
+
 Tests cover sealed score recomputation, archived prediction parity, every region and supported UI horizon, causal future-data poisoning, timestamp/DST validation, incomplete requests, explicit failures, CSV value equality, map interactions, route history, mobile layout, and the cinematic scroll/reduced-motion behavior. See `FINAL_INTEGRATION_REPORT.md` for the actual executed results and limitations.
 
 ## Containers
@@ -140,6 +232,23 @@ docker compose up --build
 
 The frontend is built with Node and served by Nginx, which proxies `/api/` to the Python backend. Ports are 5173 and 8000. The Python image installs pinned serving dependencies and copies the compact frozen bundle. Compose configuration was validated locally. **The local Docker engine was unavailable during integration, so container build and container execution are not claimed as tested.** The equivalent clean Python environment, production frontend build, real servers and browser integration were tested.
 
+## Troubleshooting
+
+| Symptom | Action |
+|---|---|
+| Current date is rejected | Use an origin returned by `/coverage`; this model supports historical 2016 inference. |
+| Homepage reports an unavailable service | Start the backend on port 8000, then check `/health` and `/coverage`. |
+| Import error for `main`, `service` or `ml` | Run the documented Uvicorn command from the repository root with `--app-dir backend`. |
+| Model or checksum validation fails | Recover the complete trusted bundle from the same repository revision; do not fill missing features or substitute another checkpoint. |
+| Dependency/native-library mismatch | Use Python 3.14 and the pinned serving requirements in a clean environment. |
+| External map tiles do not load | The labeled schematic fallback remains available; model predictions still come from the local API. |
+| Direct API URL fails CORS | Set `CORS_ORIGINS` for that frontend origin, or use the default same-origin `/api` proxy. |
+| Docker reports a missing engine pipe | Start the local Docker engine, or use the verified two-terminal Python/Vite workflow. Container execution remains unverified for the recorded integration. |
+
+PowerShell activation-policy changes are unnecessary: the commands invoke the
+virtual environment's Python executable directly. Do not put secrets in frontend
+`VITE_` variables; those values are included in the browser build.
+
 ## Repository layout and release scope
 
 ```text
@@ -150,6 +259,19 @@ frontend/                Original cinematic React/TypeScript/Vite application
 docs/                    Browser screenshots, design hashes and original test sources
 compose.yaml             Local two-service deployment definition
 FINAL_INTEGRATION_REPORT.md
+LICENSE                  MIT license for original software/documentation
+THIRD_PARTY_NOTICES.md    Photo, data, map, font and dependency notices
 ```
 
 No raw multi-million-trip source files, research dependencies, intermediate checkpoints, `node_modules`, Python environments or secrets belong in the serving repository. Historical versions remain in Git history. Integration is pushed to a `codex/` branch, with no default-branch update, force push or live cloud change. The June benchmark is suitable for historical analysis and demonstrations of this defined target; current operations require a compatible as-of data feed and a new validation exercise.
+
+## License and third-party materials
+
+Original UrbanFlow AI software and documentation are available under the
+[MIT License](LICENSE), copyright © 2026 Soham Mahesh Gaonkhadkar.
+Third-party photographs, source datasets, map services, fonts and dependencies
+retain their applicable terms; see [third-party notices](THIRD_PARTY_NOTICES.md).
+
+## Author
+
+**Soham Mahesh Gaonkhadkar** · [GitHub](https://github.com/Sohamgaonkhadkar)
