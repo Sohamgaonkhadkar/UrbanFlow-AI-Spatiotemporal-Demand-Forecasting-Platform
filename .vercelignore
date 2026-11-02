@@ -7,3 +7,5 @@
 **/playwright-report/
 backend/tests/
 docs/
+**/.env
+**/.env.*
