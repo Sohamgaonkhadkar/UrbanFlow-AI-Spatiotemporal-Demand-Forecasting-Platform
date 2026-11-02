@@ -68,3 +68,11 @@ survey or a set of model-region polygons.
 The interface requests Bebas Neue, Space Grotesk and JetBrains Mono through
 Google Fonts. Font files retain their respective font licenses. The application
 code's MIT license does not replace those licenses.
+
+## Historical README visuals
+
+Images under `docs/legacy/` are preserved from the repository owner's earlier
+README attachments. Their original canonical URLs, revisions and hashes are in
+`docs/legacy/provenance.json`. Existing embedded map, tile or other third-party
+attributions remain applicable. The figures are labeled as historical material;
+the root MIT license does not relabel third-party material inside a screenshot.

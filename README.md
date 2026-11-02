@@ -33,6 +33,8 @@ This repository is the serving application. The [research repository](https://gi
 - [Historical coverage and timestamp semantics](#historical-coverage-and-timestamp-semantics)
 - [Data provenance and scope](#data-provenance-and-scope)
 - [Application behavior](#application-behavior)
+- [Maps and interface history](#maps-and-interface-history)
+- [Forecasting mathematics](#forecasting-mathematics)
 - [API](#api)
 - [Validation](#validation)
 - [Containers](#containers)
@@ -141,6 +143,115 @@ Full browser captures are available in [screenshots](docs/screenshots/). Image
 identity, source links and photographer credits are recorded in
 [photo provenance](docs/photo-provenance.json) and
 [third-party notices](THIRD_PARTY_NOTICES.md).
+
+## Maps and interface history
+
+### Current model geography
+
+![Verified fitted region centers in longitude and latitude](docs/figures/verified-region-centroids.png)
+
+The current map uses the frozen scaler/centers and the model's actual region IDs.
+The figure displays centroids in geographic degrees; it does not invent cluster
+polygons or demand values. The interactive application map is shown in the
+current City Explorer screenshot above.
+
+<details>
+<summary>Original pickup-cluster figure from the research README</summary>
+
+![Original standardized pickup-cluster visualization](docs/legacy/pickup-clusters-original.png)
+
+This is the earlier notebook figure, retained unchanged. Its axes use transformed
+coordinates rather than geographic degrees; original labels are preserved as
+historical material. The verified geographic centers are shown above.
+
+</details>
+
+### Earlier dashboard designs
+
+The following screenshots are retained from the previous repository READMEs.
+They document the earlier LightGBM/weather interface. Their confidence gauges,
+weather/KPI labels and alert panels are **historical interface elements**, not
+evidence of v4 prediction intervals, operational alerts or live weather inputs.
+The current application and its verified capabilities are described above.
+
+![Dashboard screenshot from the previous main-branch README](docs/legacy/dashboard-previous.png)
+
+<details>
+<summary>View the earlier dashboard revision and archived demonstrations</summary>
+
+![Earlier dashboard layout recovered from repository history](docs/legacy/dashboard-earlier.png)
+
+- [Demonstration linked by the previous README](https://github.com/user-attachments/assets/6c0cd1eb-78aa-4e55-aa77-2dc26a57d7ca)
+- [Earlier demonstration linked in repository history](https://github.com/user-attachments/assets/417190e9-09c5-468f-8820-32502f995822)
+
+These recordings are historical demonstrations, not current deployment status
+or validation evidence. Original image locations, source revisions and hashes
+are recorded in [historical visual provenance](docs/legacy/provenance.json).
+
+</details>
+
+## Forecasting mathematics
+
+### Regional counts and verified coordinates
+
+With $\Delta=15$ minutes, the target $y_{r,t}$ counts retained completed trips
+assigned to model region $r$ whose pickup timestamps fall in $[t,t+\Delta)$.
+The serving API reconstructs centroid coordinates from the fixed standardized
+K-means centers:
+
+$$
+p_r^{\mathrm{center}}=\mu+\sigma\odot c_r,\qquad
+p_r=\left[\operatorname{longitude}_r,\operatorname{latitude}_r\right]^{\mathsf{T}}.
+$$
+
+The transform uses the stored scaler mean $\mu$ and scale $\sigma$ in
+`backend/bundle/geography.json`; $\odot$ is elementwise multiplication.
+Inference keeps the original mapping rather than reclustering the city.
+
+### Recursive calendar feedback
+
+For origin $\tau$ and zero-based lead $k=0,\ldots,47$, let $b_{r,k}$ be the
+base model's original-count-scale prediction, $s_{r,k}$ its historical seasonal
+anchor and $c_{r,k}$ the training-only calendar profile with causal origin-local
+adaptation. The frozen coefficients define:
+
+$$
+\lambda_k=0.3\frac{k}{47},\qquad
+a_{r,k}=(1-\lambda_k)b_{r,k}+\lambda_k s_{r,k},\qquad
+w_k=0.6\left(1-e^{-k/12}\right).
+$$
+
+$$
+\widehat y_{r,k}=\max\left(0,(1-w_k)a_{r,k}+w_k c_{r,k}\right),
+\qquad \widetilde y_{r,\tau+k\Delta}\leftarrow\widehat y_{r,k}.
+$$
+
+Only observations strictly before the origin initialize the 1,536-bin context.
+Each final prediction enters the next step's history. Computing the full joint
+trajectory once makes all region requests and shorter horizon prefixes agree.
+The detailed lag, rolling-statistic, EWMA, cyclic-encoding and calendar-gain
+equations are documented in the companion research README's
+[mathematical formulation](https://github.com/Sohamgaonkhadkar/UBER-DEMAND-PREDICTION/blob/codex/final-v4-integration-20261102/README.md#mathematical-formulation) section.
+
+### What the evaluation scores mean
+
+For $N$ evaluated predictions and errors $e_i=\widehat y_i-y_i$:
+
+$$
+\operatorname{MAE}=\frac{1}{N}\sum_{i=1}^{N}|e_i|,\qquad
+\operatorname{RMSE}=\sqrt{\frac{1}{N}\sum_{i=1}^{N}e_i^2}.
+$$
+
+$$
+\operatorname{WAPE}(\%)=100\,
+\frac{\sum_{i=1}^{N}|e_i|}{\sum_{i=1}^{N}|y_i|},\qquad
+R^2=1-\frac{\sum_{i=1}^{N}e_i^2}{\sum_{i=1}^{N}(y_i-\overline{y})^2}.
+$$
+
+June's pooled evaluation has $N=55\times30\times48=79{,}200$. The 11.6086%
+12-hour WAPE pools every lead; the individual lead-48 WAPE is 13.5862%.
+WAPE is not classification accuracy. The bootstrap metric interval does not
+provide count-level prediction bands.
 
 ## API
 

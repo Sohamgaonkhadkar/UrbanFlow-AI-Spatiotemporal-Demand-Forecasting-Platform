@@ -1,0 +1,29 @@
+[
+  {
+    "file": "pickup-clusters-original.png",
+    "source_url": "https://github.com/user-attachments/assets/784a3709-736a-4f40-a3f2-fa5dcb9022f7",
+    "source_repository": "UBER-DEMAND-PREDICTION",
+    "source_readme_revision": "8595244f4974c653598a04627e7fcc6fad40d519",
+    "sha256": "b87870331648ce641c1ad6a52d23cef3bcd1b0a95684ea80b58c4295bbcd95bf",
+    "bytes": 127973,
+    "presentation": "historical figure; not a current model-performance or capability claim"
+  },
+  {
+    "file": "dashboard-previous.png",
+    "source_url": "https://github.com/user-attachments/assets/67534e54-2d07-40ba-8c0a-9bb611bf05f5",
+    "source_repository": "UrbanFlow-AI-Spatiotemporal-Demand-Forecasting-Platform",
+    "source_readme_revision": "76b1840c070e1f8f9589e7c96c18e6f9a1acc258",
+    "sha256": "2e41a07ee56d6de1e0225a433ce97393f78f689319f813cd97d2fec5f05ab34e",
+    "bytes": 229140,
+    "presentation": "historical figure; not a current model-performance or capability claim"
+  },
+  {
+    "file": "dashboard-earlier.png",
+    "source_url": "https://github.com/user-attachments/assets/f7f5e5b8-0eb2-47e6-94df-798b93291414",
+    "source_repository": "UrbanFlow-AI-Spatiotemporal-Demand-Forecasting-Platform",
+    "source_readme_revision": "a31f84fe",
+    "sha256": "bcb0c74cde5d5f79e25d2e1a65c87c8c09e813b0373847010362144017169155",
+    "bytes": 224428,
+    "presentation": "historical figure; not a current model-performance or capability claim"
+  }
+]
