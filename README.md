@@ -9,7 +9,7 @@ application: real observations, a frozen model, and a cinematic interface.**
 
 UrbanFlow AI connects a cinematic React interface to a frozen, validated spatiotemporal demand model. It forecasts retained completed NYC Yellow Taxi trips across 30 fitted regions at 15-minute resolution, using genuine 2016 observations. The homepage, Overview, Forecast Studio, City Explorer, Demand Insights and Model Intelligence share the same model and data contract.
 
-This repository is the serving application. The [research repository](https://github.com/Sohamgaonkhadkar/UBER-DEMAND-PREDICTION/tree/codex/final-v4-integration-20261102) contains notebooks, experiments, frozen evaluation evidence and acquisition code. No training is performed on application startup or during a prediction request.
+This repository is the serving application. The [research repository](https://github.com/Sohamgaonkhadkar/UBER-DEMAND-PREDICTION/tree/main) contains notebooks, experiments, frozen evaluation evidence and acquisition code. No training is performed on application startup or during a prediction request.
 
 ![UrbanFlow cinematic homepage](docs/screenshots/home-photos-desktop.png)
 
@@ -65,11 +65,11 @@ The exact ledger is exposed at `/model/metrics` and checked in at `backend/bundl
 
 Use Python **3.14** and Node.js **22.12+ or 24**. Both model and observations are included in Git: no raw-data download, API key, research checkout or training job is needed. Only load the trusted checked-in joblib bundle; joblib is an executable serialization format.
 
-The completed platform is currently on `codex/final-v4-integration-20261102`.
+The completed platform is available on the repository's `main` branch.
 Clone that branch while the default branch retains the earlier version:
 
 ```powershell
-git clone --branch codex/final-v4-integration-20261102 https://github.com/Sohamgaonkhadkar/UrbanFlow-AI-Spatiotemporal-Demand-Forecasting-Platform.git Deployment-Platform
+git clone --branch main https://github.com/Sohamgaonkhadkar/UrbanFlow-AI-Spatiotemporal-Demand-Forecasting-Platform.git Deployment-Platform
 cd Deployment-Platform
 ```
 
@@ -196,61 +196,61 @@ are recorded in [historical visual provenance](docs/legacy/provenance.json).
 
 ### Regional counts and verified coordinates
 
-With $\Delta=15$ minutes, the target $y_{r,t}$ counts retained completed trips
-assigned to model region $r$ whose pickup timestamps fall in $[t,t+\Delta)$.
+With $`\Delta=15`$ minutes, the target $`y_{r,t}`$ counts retained completed trips
+assigned to model region $`r`$ whose pickup timestamps fall in $`[t,t+\Delta)`$.
 The serving API reconstructs centroid coordinates from the fixed standardized
 K-means centers:
 
-$$
+```math
 p_r^{\mathrm{center}}=\mu+\sigma\odot c_r,\qquad
-p_r=\left[\operatorname{longitude}_r,\operatorname{latitude}_r\right]^{\mathsf{T}}.
-$$
+p_r=\left[\mathrm{longitude}_r,\mathrm{latitude}_r\right]^{\mathsf{T}}.
+```
 
-The transform uses the stored scaler mean $\mu$ and scale $\sigma$ in
-`backend/bundle/geography.json`; $\odot$ is elementwise multiplication.
+The transform uses the stored scaler mean $`\mu`$ and scale $`\sigma`$ in
+`backend/bundle/geography.json`; $`\odot`$ is elementwise multiplication.
 Inference keeps the original mapping rather than reclustering the city.
 
 ### Recursive calendar feedback
 
-For origin $\tau$ and zero-based lead $k=0,\ldots,47$, let $b_{r,k}$ be the
-base model's original-count-scale prediction, $s_{r,k}$ its historical seasonal
-anchor and $c_{r,k}$ the training-only calendar profile with causal origin-local
+For origin $`\tau`$ and zero-based lead $`k=0,\ldots,47`$, let $`b_{r,k}`$ be the
+base model's original-count-scale prediction, $`s_{r,k}`$ its historical seasonal
+anchor and $`c_{r,k}`$ the training-only calendar profile with causal origin-local
 adaptation. The frozen coefficients define:
 
-$$
+```math
 \lambda_k=0.3\frac{k}{47},\qquad
 a_{r,k}=(1-\lambda_k)b_{r,k}+\lambda_k s_{r,k},\qquad
 w_k=0.6\left(1-e^{-k/12}\right).
-$$
+```
 
-$$
+```math
 \widehat y_{r,k}=\max\left(0,(1-w_k)a_{r,k}+w_k c_{r,k}\right),
 \qquad \widetilde y_{r,\tau+k\Delta}\leftarrow\widehat y_{r,k}.
-$$
+```
 
 Only observations strictly before the origin initialize the 1,536-bin context.
 Each final prediction enters the next step's history. Computing the full joint
 trajectory once makes all region requests and shorter horizon prefixes agree.
 The detailed lag, rolling-statistic, EWMA, cyclic-encoding and calendar-gain
 equations are documented in the companion research README's
-[mathematical formulation](https://github.com/Sohamgaonkhadkar/UBER-DEMAND-PREDICTION/blob/codex/final-v4-integration-20261102/README.md#mathematical-formulation) section.
+[mathematical formulation](https://github.com/Sohamgaonkhadkar/UBER-DEMAND-PREDICTION/blob/main/README.md#mathematical-formulation) section.
 
 ### What the evaluation scores mean
 
-For $N$ evaluated predictions and errors $e_i=\widehat y_i-y_i$:
+For $`N`$ evaluated predictions and errors $`e_i=\widehat y_i-y_i`$:
 
-$$
-\operatorname{MAE}=\frac{1}{N}\sum_{i=1}^{N}|e_i|,\qquad
-\operatorname{RMSE}=\sqrt{\frac{1}{N}\sum_{i=1}^{N}e_i^2}.
-$$
+```math
+\mathrm{MAE}=\frac{1}{N}\sum_{i=1}^{N}|e_i|,\qquad
+\mathrm{RMSE}=\sqrt{\frac{1}{N}\sum_{i=1}^{N}e_i^2}.
+```
 
-$$
-\operatorname{WAPE}(\%)=100\,
+```math
+\mathrm{WAPE}(\%)=100\,
 \frac{\sum_{i=1}^{N}|e_i|}{\sum_{i=1}^{N}|y_i|},\qquad
 R^2=1-\frac{\sum_{i=1}^{N}e_i^2}{\sum_{i=1}^{N}(y_i-\overline{y})^2}.
-$$
+```
 
-June's pooled evaluation has $N=55\times30\times48=79{,}200$. The 11.6086%
+June's pooled evaluation has $`N=55\times30\times48=79{,}200`$. The 11.6086%
 12-hour WAPE pools every lead; the individual lead-48 WAPE is 13.5862%.
 WAPE is not classification accuracy. The bootstrap metric interval does not
 provide count-level prediction bands.
@@ -353,7 +353,7 @@ matched the local frozen artifact exactly for the recorded test request. See the
 [deployment validation record](docs/vercel-validation.json) for scope and commit.
 
 
-Import this repository using the `codex/final-v4-integration-20261102` branch and
+Import this repository using the `main` branch and
 keep the **Root Directory at the repository root**, not `frontend/`.
 `vercel.json` selects FastAPI and builds the cinematic frontend with `npm ci`
 and `npm run build`. Python is pinned to 3.14. No API keys or raw-data downloads
@@ -407,7 +407,7 @@ LICENSE                  MIT license for original software/documentation
 THIRD_PARTY_NOTICES.md    Photo, data, map, font and dependency notices
 ```
 
-No raw multi-million-trip source files, research dependencies, intermediate checkpoints, `node_modules`, Python environments or secrets belong in the serving repository. Historical versions remain in Git history. Integration is pushed to a `codex/` branch, with no default-branch update or force push. The full-stack application is now deployed on Vercel; the validation record above documents its hosted checks. The June benchmark is suitable for historical analysis and demonstrations of this defined target; current operations require a compatible as-of data feed and a new validation exercise.
+No raw multi-million-trip source files, research dependencies, intermediate checkpoints, `node_modules`, Python environments or secrets belong in the serving repository. Historical versions remain in Git history. The completed integration is available on `main` after review through its pull request. The full-stack application is now deployed on Vercel; the validation record above documents its hosted checks. The June benchmark is suitable for historical analysis and demonstrations of this defined target; current operations require a compatible as-of data feed and a new validation exercise.
 
 ## License and third-party materials
 
