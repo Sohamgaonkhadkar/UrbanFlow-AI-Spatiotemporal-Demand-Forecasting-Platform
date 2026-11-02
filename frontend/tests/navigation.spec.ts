@@ -147,11 +147,11 @@ test("explorer selection carries through to a working historical forecast", asyn
   await page.goto("/");
   await page.locator("#scene-0").getByRole("button", { name: /^explore the city/i }).click();
   await expectPage(page, "explorer");
-  await page.getByPlaceholder(/search region/i).fill("NYC Sector 16");
+  await page.getByPlaceholder(/search region/i).fill("Williamsburg");
   await page.locator('ul[aria-label="Regions ranked by activity"] button[data-region="16"]').click();
   await page.getByRole("button", { name: /^forecast this region/i }).click();
   await expectPage(page, "forecast");
-  await expect(page.locator("select").first()).toHaveValue("16");
+  await expect(page.locator('select:not([aria-label="Forecast model"])').first()).toHaveValue("16");
 
   await page.getByRole("button", { name: /^1 HOUR\b/i }).click();
   const generate = page.getByRole("button", { name: /generate forecast/i });
@@ -166,8 +166,8 @@ test("an overview region opens the forecast for that region", async ({ page, run
   await page.goto("/");
   await page.locator("#scene-0").getByRole("button", { name: /^enter the system/i }).click();
   await expectPage(page, "overview");
-  await page.locator("table tbody tr").filter({ hasText: "NYC Sector 05" }).click();
+  await page.locator('table tbody tr[data-region="5"]').click();
   await expectPage(page, "forecast");
-  await expect(page.locator("select").first()).toHaveValue("5");
+  await expect(page.locator('select:not([aria-label="Forecast model"])').first()).toHaveValue("5");
   expect(runtimeErrors).toEqual([]);
 });

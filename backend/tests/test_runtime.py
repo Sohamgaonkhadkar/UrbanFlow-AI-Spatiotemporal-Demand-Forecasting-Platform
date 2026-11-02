@@ -47,7 +47,8 @@ def test_all_regions_and_prefix_consistency(client,origin):
             assert d['forecast']==all_regions[r]['forecast'][:h]
             assert all(pd.Timestamp(x['datetime'])<pd.Timestamp(origin) for x in d['history'])
             assert all(np.isfinite(x['prediction']) and x['prediction']>=0 for x in d['forecast'])
-            assert d['weather'] is None and d['feature_importance'] is None and d['alerts']==[]
+            assert d['weather']['data_kind']=='historical_reanalysis' and not d['weather']['model_used']
+            assert d['feature_importance'] is None and d['alerts']==[]
             assert not d['demo']
     assert store.executions-before<=1
 

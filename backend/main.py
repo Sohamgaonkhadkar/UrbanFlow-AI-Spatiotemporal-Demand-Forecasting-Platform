@@ -35,9 +35,11 @@ class ForecastRequest(BaseModel):
     datetime: str
     horizon: int = Field(default=48,ge=1,le=48,strict=True)
     mode: Literal['historical'] = 'historical'
+    model_variant: Literal['baseline','weather'] = 'baseline'
 
 class BatchRequest(BaseModel):
     model_config = ConfigDict(extra='forbid')
+    model_variant: Literal['baseline','weather'] = 'baseline'
     datetime: str
     horizon: int = Field(default=48,ge=1,le=48,strict=True)
 
@@ -59,12 +61,12 @@ def metrics(request: Request): return request.app.state.store.metrics()
 
 @app.post('/predict')
 def predict(body: ForecastRequest, request: Request):
-    return request.app.state.store.predict(body.region,body.datetime,body.horizon)
+    return request.app.state.store.predict(body.region,body.datetime,body.horizon,body.model_variant)
 
 @app.post('/predict/batch')
 def batch(body: BatchRequest, request: Request):
     store=request.app.state.store
-    t,p=store.forecast(body.datetime,body.horizon)
+    t,p=store.forecast(body.datetime,body.horizon,body.model_variant)
     return {'origin':t.isoformat(),'timezone':'America/New_York','forecasts':[
         {'region':r,'forecast':[{'datetime':(t+k*__import__('pandas').Timedelta(minutes=15)).isoformat(),'prediction':round(float(v),2)} for k,v in enumerate(p[:,r])]}
         for r in range(30)]}
@@ -77,10 +79,16 @@ def historical(request: Request,region: Region,start: str,end: str):
 def insights(request: Request,datetime: str): return request.app.state.store.insights(datetime)
 
 @app.get('/activity')
-def activity(request: Request,datetime: str,mode: Literal['observed','forecast']='observed'):
+def activity(request: Request,datetime: str,mode: Literal['observed','forecast']='observed',model_variant: Literal['baseline','weather']='baseline'):
     s=request.app.state.store;t=s.origin(datetime)
     if mode=='forecast':
-        t,p=s.forecast(datetime,1);values=p[0];stamp=t
+        t,p=s.forecast(datetime,1,model_variant);values=p[0];stamp=t
     else:
         values=s.wide.loc[s.wide.index<t].iloc[-1].to_numpy();stamp=t-__import__('pandas').Timedelta(minutes=15)
     return {'datetime':stamp.isoformat(),'kind':mode,'units':'retained trips per 15 minutes','activity':[{'region':r,'activity':round(float(v),2)} for r,v in enumerate(values)]}
+
+@app.get('/weather')
+def weather(request: Request,datetime: str,model_variant: Literal['baseline','weather']='baseline'):
+    from weather_context import context
+    store=request.app.state.store
+    return context(store.weather_data,store.origin(datetime),model_variant=='weather')

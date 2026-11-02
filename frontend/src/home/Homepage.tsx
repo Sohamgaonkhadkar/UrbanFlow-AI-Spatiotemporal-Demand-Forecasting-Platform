@@ -443,7 +443,7 @@ export default function Homepage() {
                     ["LAG DEMAND", "t−1 … t−96 · 15-minute resolution"],
                     ["ROLLING STATS", "mean / std / max over 4h, 24h, 7d"],
                     ["CIRCULAR TIME", "sin + cos of hour, day, week"],
-                    ["WEATHER", "Weather is unavailable and excluded"],
+                    ["WEATHER", "Historical weather context + optional weather-aware model"],
                     ["SPATIAL", "K-Means region identity + neighbours"],
                   ].map(([a, b], i) => (
                     <div
@@ -542,7 +542,7 @@ export default function Homepage() {
               <div className="mb-5 flex flex-wrap items-baseline justify-between gap-3">
                 <Ch
                   index="CH-11"
-                  label="NYC SECTOR 15 · 6-HOUR RECURSIVE HORIZON"
+                  label="MIDTOWN–TIMES SQUARE · 6-HOUR RECURSIVE HORIZON"
                 />
                 <span className="stencil stencil-acid">HISTORICAL MODEL OUTPUT</span>
               </div>
@@ -651,7 +651,7 @@ export default function Homepage() {
                 </div>
                 <p className="mt-5 text-[13px] leading-relaxed text-steel">
                   A forecasting platform for New York City taxi pickup demand.
-                  Frozen v4 forecasts and retained completed Yellow Taxi observations from 2016. This is a historical application; weather, prediction bands and operational alerts are unavailable.
+                  Frozen v4 forecasts and retained completed Yellow Taxi observations from 2016. Historical weather is integrated, with an optional weather-aware forecast model. Prediction bands and operational alerts remain unavailable.
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-x-10 gap-y-6 sm:grid-cols-3">

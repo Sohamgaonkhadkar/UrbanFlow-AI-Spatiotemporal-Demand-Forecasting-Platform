@@ -1,3 +1,4 @@
+import WeatherDetails from "@/components/WeatherDetails";
 import Unavailable from "@/components/Unavailable";
 import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
@@ -7,7 +8,7 @@ import { PageHead } from "@/pages/ForecastStudio";
 import {
   REGIONS,
   computeInsights,
-  unavailableWeather,
+  displayWeather,
   exportCsv,
   regionById,
 } from "@/lib/data";
@@ -128,7 +129,7 @@ export default function Insights() {
   const fb = b.data?.forecast ?? [];
   const ia = useMemo(() => computeInsights(fa), [fa]);
   const ib = useMemo(() => computeInsights(fb), [fb]);
-  const weather = unavailableWeather(now.date);
+  const weather = displayWeather(a.data?.weather);
   const error = a.error ?? b.error;
   const loading = a.loading || b.loading;
   const diff = ia.average - ib.average;
@@ -399,9 +400,7 @@ export default function Insights() {
               </span>
               <span className="text-[14px] text-steel">{weather.condition}</span>
             </div>
-            <div className="stencil mt-2 leading-relaxed" style={{ fontSize: 8.5 }}>
-              UNAVAILABLE. WEATHER IS EXCLUDED FROM V4 INFERENCE.
-            </div>
+            <WeatherDetails context={a.data?.weather} />
           </div>
           <div className="mt-6 border border-white/10 p-3">
             <div className="flex items-center gap-2">
@@ -412,8 +411,8 @@ export default function Insights() {
             </div>
             <p className="mt-2 text-[11.5px] leading-snug text-steel">
               Both series share one forecast origin and one horizon so the
-              comparison stays like-for-like. Values are illustrative unless a
-              live inference service is bound.
+              comparison stays like-for-like. Both use the selected forecasting
+              model and genuine historical observations.
             </p>
           </div>
         </aside>

@@ -1,3 +1,4 @@
+import type { ModelVariant } from "@/lib/data";
 import React, { createContext, useContext, useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/utils/cn";
@@ -288,6 +289,8 @@ function routeFromLocation(): Route {
   return appRoutes.includes(hash as Route) ? (hash as Route) : "home";
 }
 export interface AppState {
+  modelVariant: ModelVariant;
+  setModelVariant: (variant: ModelVariant) => void;
   route: Route;
   go: (r: Route) => void;
   region: number;
@@ -304,6 +307,7 @@ export const useApp = () => {
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [route, setRoute] = useState<Route>(routeFromLocation);
   const [region, setRegion] = useState(15);
+  const [modelVariant, setModelVariant] = useState<ModelVariant>("baseline");
   const [entered, setEntered] = useState(() => routeFromLocation() !== "home");
   useEffect(() => {
     const syncRoute = () => {
@@ -334,7 +338,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     window.scrollTo({ top: 0, behavior: "instant" });
   };
   return (
-    <Ctx.Provider value={{ route, go, region, setRegion, entered, setEntered }}>
+    <Ctx.Provider value={{ route, go, region, setRegion, entered, setEntered, modelVariant, setModelVariant }}>
       {children}
     </Ctx.Provider>
   );

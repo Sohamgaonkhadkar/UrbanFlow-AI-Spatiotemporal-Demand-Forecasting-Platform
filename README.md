@@ -36,6 +36,7 @@ This repository is the serving application. The [research repository](https://gi
 - [Data provenance and scope](#data-provenance-and-scope)
 - [Application behavior](#application-behavior)
 - [Maps and interface history](#maps-and-interface-history)
+- [Weather-aware forecasts](#weather-aware-forecasts)
 - [Forecasting mathematics](#forecasting-mathematics)
 - [API](#api)
 - [Validation](#validation)
@@ -115,7 +116,7 @@ The observation panel aggregates original coordinate-bearing 2016 Yellow Taxi re
 
 The dense observation grid retains zero bins under a source-completeness assumption. Raw feed outages cannot be certified from an aggregate count panel. The earlier DST quarantine and source processing choices remain documented in the research report. No fabricated observations are inserted to make an incomplete inference context pass.
 
-Region IDs are the fitted model's IDs. `/regions` computes each centroid as `scaled_center × scaler_scale + scaler_mean`, retaining the original longitude/latitude order. Generic **NYC Sector 00–29** labels avoid attaching unverified neighborhoods to cluster IDs. These are point centroids; authoritative cluster polygons are unavailable. The map's cartographic/schematic backgrounds do not define model boundaries.
+Region IDs are the fitted model's IDs. `/regions` computes each centroid as `scaled_center × scaler_scale + scaler_mean`, retaining the original longitude/latitude order. Each centroid now has a coordinate-derived **neighborhood or landmark name** from the official NYC 2020 NTA containing that point. Original model IDs remain visible. These are approximate area labels, not inferred cluster boundaries. These are point centroids; authoritative cluster polygons are unavailable. The map's cartographic/schematic backgrounds do not define model boundaries.
 
 ## Application behavior
 
@@ -123,7 +124,7 @@ Region IDs are the fitted model's IDs. `/regions` computes each centroid as `sca
 - **Forecast Studio:** region, date, quarter-hour and horizon controls call the frozen model. History precedes the submitted origin. CSV timestamps and rounded forecast values match the displayed/API values.
 - **City Explorer:** search and selection across all 30 verified centroids, pan/zoom/reset, and explicitly labeled observed versus forecast activity. Observed activity is the bin immediately before the origin; forecast activity is the first predicted bin at the origin. The overlay shows its actual timestamp. External tile failure is labeled and falls back to schematic geography, while demand values still come from the API.
 - **Demand Insights:** two genuine regional forecasts at one origin/horizon, derived summaries and genuine preceding observations. Past versus predicted summary bars refer to separate intervals, not a forecast-accuracy comparison.
-- **Model Intelligence:** real backend metadata and verified June metrics. Weather, validated whole-model feature attribution, calibrated prediction intervals and operational alerts are unavailable.
+- **Model Intelligence:** real backend metadata and verified June metrics. Historical weather context and the optional weather model are available. Validated whole-model feature attribution, calibrated prediction intervals and operational alerts remain unavailable.
 
 The supplied cinematic design retains its original CSS, scene sequence, typography, chart components and animation logic. The five homepage photographs match the approved reference recording; see [photo provenance](docs/photo-provenance.json). Source photos live in `frontend/src/assets` and are inlined into the build, with matching public copies for existing image URLs. The earlier template hash manifest and baseline screenshots document the original integration before this requested photo refresh. Corrections change data, labels, loading/errors and functional controls. Before/after browser captures and asset hashes are in `docs/visual-baseline`, `docs/screenshots`, `docs/visual-comparison.png` and `docs/template-design-manifest.json`. Original template test sources are archived in `docs/original-template-tests`; adapted behavior tests and genuine-data acceptance tests run from `frontend/tests`.
 
@@ -191,6 +192,34 @@ or validation evidence. Original image locations, source revisions and hashes
 are recorded in [historical visual provenance](docs/legacy/provenance.json).
 
 </details>
+
+## Weather-aware forecasts
+
+Use the **Forecast model** selector in the application header to choose
+**Validated v4** or **Weather-aware · experimental**. Weather mode actually uses
+six lagged ERA5 weather inputs in a separately trained 52-feature model.
+Temperature, rain, wind and humidity panels display genuine historical API data.
+The map forecast layer, charts, model metrics and CSV provenance follow the
+selected model. All regions now display coordinate-verified neighborhood or
+landmark names alongside their original region IDs.
+
+| Model | 15-minute WAPE | Cumulative 12-hour WAPE | Evidence |
+|---|---:|---:|---|
+| Frozen v4 (default) | 9.7507% | 11.6086% | Original frozen June evaluation |
+| Weather-aware extension | 9.6992% | 11.4395% | Reused June diagnostic data; experimental |
+
+Weather mode's May development gain was below the predeclared promotion
+threshold, so it does not silently replace v4. Its inputs are at least three
+hours before each origin and remain fixed across the horizon. ERA5 is
+retrospective historical reconstruction, not a weather forecast issued in 2016;
+its original publication availability is not certified. One NYC reference
+location supplies the weather, rather than neighborhood-specific stations.
+Read the [data, methods and limitations](docs/weather-and-region-names.md).
+
+The API accepts `model_variant: "baseline"` (default) or `"weather"` in single
+and batch forecast requests and in the forecast activity query. `GET /weather`
+returns the selected origin's lagged context. `/model/info` and `/model/metrics`
+include separate weather-mode metadata and diagnostics.
 
 ## Forecasting mathematics
 
@@ -261,7 +290,8 @@ provide count-level prediction bands.
 |---|---|---|
 | GET | `/health` | Loaded model and historical service status |
 | GET | `/coverage` | Dynamic date limits, default origin and capability flags |
-| GET | `/regions` | 30 inverse-transformed fitted centroids |
+| GET | `/regions` | 30 inverse-transformed fitted centroids with verified area names |
+| GET | `/weather?datetime=…` | Genuine lagged historical ERA5 weather context |
 | GET | `/model/info` | Architecture, fitted schema, target and limitations |
 | GET | `/model/metrics` | Verified June evaluation ledger |
 | POST | `/predict` | One region's forecast and genuine preceding history |
@@ -299,7 +329,7 @@ The request chooses model region 3 at an explicit New York historical origin.
 The response contains 48 quarter-hour predictions; changing the selected region
 or requesting a shorter horizon reuses the same joint origin trajectory.
 
-`/predict` returns `forecast`, `history`, `heatmap`, `heatmap_datetime`, `heatmap_kind` and explicit capability metadata. Weather and feature importance are `null`; operational alerts are an empty list with availability `false`. Errors return an appropriate HTTP status and safe message, never replacement values or internal filesystem paths.
+`/predict` returns `forecast`, `history`, `heatmap`, `heatmap_datetime`, `heatmap_kind` and explicit capability metadata. `weather` contains genuine lagged ERA5 context and a `model_used` flag; feature importance is `null`. Operational alerts are an empty list with availability `false`. Errors return an appropriate HTTP status and safe message, never replacement values or internal filesystem paths.
 
 ```mermaid
 flowchart LR

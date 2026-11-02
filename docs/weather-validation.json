@@ -1,0 +1,16 @@
+{
+  "backend_tests_passed": 26,
+  "browser_suite_initial_passed": 38,
+  "browser_suite_initial_failed": 1,
+  "initial_failure": "Overview navigation selector assumed unique neighborhood names. Corrected to stable region ID 5.",
+  "targeted_rerun_passed": 3,
+  "targeted_rerun_failed": 0,
+  "distinct_browser_tests_verified_after_fix": 39,
+  "typecheck": "passed",
+  "production_build": "passed",
+  "baseline_sha256_unchanged": "7b96eaf0f9c9bec866e29677f9df9cb7647a99619c1c4589c35632a8f845c2c4",
+  "weather_model_sha256": "d2f388323ba0251e02ab1094396255dbe82914f7c375522f65421d4e66bf106f",
+  "weather_inputs_lag_hours": 3,
+  "weather_context_cities": 1,
+  "labels_verified": 30
+}

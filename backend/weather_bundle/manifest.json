@@ -1,0 +1,12 @@
+{
+  "sha256": {
+    "candidate_weather.joblib": "d2f388323ba0251e02ab1094396255dbe82914f7c375522f65421d4e66bf106f",
+    "feature_schema.json": "2bc73772f6dbe9e187f8dedefebbf6e510958ead6c76a728c40d73e5031ab212",
+    "june_diagnostics.json": "40c556afb530ebdf4fc00bb8e263eb366eb6d69b63ad1d2946c35849e046c03c",
+    "may_comparison.json": "b94e853e1efe747d595b320e8627fe82fbd8459a5161094064ebef51f4547704",
+    "protocol.json": "6e752fd58d9a04b4978c9375d5880c7ef04b5107643fecc5ad24da1cc4c18c86",
+    "selection.json": "95c110e86739cbbce5a28607527736ccdddfab8a5a338bc6329c032903e2a50a",
+    "source.json": "57783b4c354ea09bdb8506f4ea2d7ebe7202a6ec309aef2297209a776ae8cb0a",
+    "weather_hourly.parquet": "939246d6685e2057f395db3eaea4b171d3ef7aa284ab13c1fa259356dad7191f"
+  }
+}
