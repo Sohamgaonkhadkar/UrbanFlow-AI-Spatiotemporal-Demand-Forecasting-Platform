@@ -10,11 +10,11 @@ import {
   AnimatePresence,
 } from "framer-motion";
 import { ArrowDown, Crosshair, Radar } from "lucide-react";
-import heroImg from "/images/hero-manhattan.jpg?inline";
-import twinImg from "/images/digital-twin.jpg?inline";
-import streetImg from "/images/street-rain.jpg?inline";
-import canyonImg from "/images/times-canyon.jpg?inline";
-import crossImg from "/images/aerial-intersection.jpg?inline";
+import heroImg from "@/assets/hero-manhattan.jpg?inline";
+import twinImg from "@/assets/digital-twin.jpg?inline";
+import streetImg from "@/assets/street-rain.jpg?inline";
+import canyonImg from "@/assets/times-canyon.jpg?inline";
+import crossImg from "@/assets/aerial-intersection.jpg?inline";
 import ForecastChart from "@/components/ForecastChart";
 import CityMap from "@/components/CityMap";
 import CityTransformation from "@/home/CityTransformation";

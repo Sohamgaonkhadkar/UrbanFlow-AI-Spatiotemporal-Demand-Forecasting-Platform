@@ -184,3 +184,8 @@ Open `http://127.0.0.1:5173`; API documentation is at `http://127.0.0.1:8000/doc
 Docker CLI 29.7.2 is installed, but its `desktop-linux` engine pipe was absent. Compose syntax was validated; container build/run is explicitly untested. The equivalent clean Python install, actual HTTP service, TypeScript/production build, production preview and browser suite were verified.
 
 This is historical 2016 inference for the retained completed-trip target. Current operations require a compatible as-of observation feed and new validation. Weather, calibrated prediction bands, whole-hybrid attribution, operational alerts and verified cluster polygons are unavailable. The July holiday confirmation remains unexecuted because compatible complete coordinate-bearing data was not established. These limitations are preserved in both README files and the model/API capability metadata.
+
+
+## Follow-up: reference-video photo refresh
+
+The user subsequently requested the photographs shown in a screen recording. All five exact JPEGs were recovered from the public reference frontend and verified against the image hashes listed in ZIP (8). Source assets, public copies, image imports and homepage previews were updated; forecasting/model/backend code was untouched. The original asset-hash claims above describe the initial integration, before this requested refresh. See [photo refresh validation](docs/PHOTO_REFRESH.md) and [asset provenance](docs/photo-provenance.json).
