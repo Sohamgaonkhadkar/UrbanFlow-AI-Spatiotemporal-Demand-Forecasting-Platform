@@ -1,0 +1,25 @@
+{
+  "deployment_url": "https://urbanflow-ft7bko6wf-gaonkhadkarsoham2006-5043.vercel.app",
+  "commit": "24b05a2",
+  "checks": {
+    "/api/regions": "passed",
+    "/api/model/metrics": "passed",
+    "/api/coverage": "passed",
+    "/": "passed",
+    "/api/predict": "passed"
+  },
+  "linux_cpu_vs_local_max_prediction_delta": 0.0,
+  "model_sha256": "7b96eaf0f9c9bec866e29677f9df9cb7647a99619c1c4589c35632a8f845c2c4",
+  "production_url": "https://urbanflow-ai-rose.vercel.app",
+  "deployment_id": "dpl_6RPNK7c3pMy8V3xKBV3DqiQHH3Dn",
+  "verified_at_utc": "2026-11-02T17:03:36.181444+00:00",
+  "public_access_without_credentials": true,
+  "public_forecast_steps": 48,
+  "public_forecast_max_prediction_delta": 0.0,
+  "invalid_region_status": 422,
+  "unknown_api_status": 404,
+  "serving_regression_tests_passed": 22,
+  "frontend_typecheck": "passed",
+  "frontend_build": "passed",
+  "production_dependency_audit_vulnerabilities": 0
+}

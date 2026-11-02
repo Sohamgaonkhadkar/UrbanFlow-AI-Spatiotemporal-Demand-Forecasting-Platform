@@ -13,6 +13,8 @@ This repository is the serving application. The [research repository](https://gi
 
 ![UrbanFlow cinematic homepage](docs/screenshots/home-photos-desktop.png)
 
+**Live application:** [urbanflow-ai-rose.vercel.app](https://urbanflow-ai-rose.vercel.app) · [API health](https://urbanflow-ai-rose.vercel.app/api/health)
+
 ## Platform at a glance
 
 | Dimension | Delivered capability |
@@ -345,6 +347,12 @@ The frontend is built with Node and served by Nginx, which proxies `/api/` to th
 
 ## Vercel deployment
 
+The full application is deployed at [urbanflow-ai-rose.vercel.app](https://urbanflow-ai-rose.vercel.app).
+Public frontend/API checks and a 48-step cloud forecast passed; rounded predictions
+matched the local frozen artifact exactly for the recorded test request. See the
+[deployment validation record](docs/vercel-validation.json) for scope and commit.
+
+
 Import this repository using the `codex/final-v4-integration-20261102` branch and
 keep the **Root Directory at the repository root**, not `frontend/`.
 `vercel.json` selects FastAPI and builds the cinematic frontend with `npm ci`
@@ -399,7 +407,7 @@ LICENSE                  MIT license for original software/documentation
 THIRD_PARTY_NOTICES.md    Photo, data, map, font and dependency notices
 ```
 
-No raw multi-million-trip source files, research dependencies, intermediate checkpoints, `node_modules`, Python environments or secrets belong in the serving repository. Historical versions remain in Git history. Integration is pushed to a `codex/` branch, with no default-branch update, force push or live cloud change. The June benchmark is suitable for historical analysis and demonstrations of this defined target; current operations require a compatible as-of data feed and a new validation exercise.
+No raw multi-million-trip source files, research dependencies, intermediate checkpoints, `node_modules`, Python environments or secrets belong in the serving repository. Historical versions remain in Git history. Integration is pushed to a `codex/` branch, with no default-branch update or force push. The full-stack application is now deployed on Vercel; the validation record above documents its hosted checks. The June benchmark is suitable for historical analysis and demonstrations of this defined target; current operations require a compatible as-of data feed and a new validation exercise.
 
 ## License and third-party materials
 
