@@ -1,142 +1,86 @@
-
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-import pandas as pd
-import joblib
-from contextlib import asynccontextmanager
 import os
+import logging
+from pathlib import Path
+from contextlib import asynccontextmanager
+from typing import Annotated, Literal
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
+from pydantic import BaseModel, ConfigDict, Field
+from service import Store, InputError
 
-from services.forecasting_service import generate_recursive_forecast
-
-# Global State
-PIPELINE = {}
-SEED_DATA = None
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(BASE_DIR, "data", "lgbm_taxi_pipeline.pkl")
-SEED_PATH = os.path.join(BASE_DIR, "data", "historical_seed_data.csv")
-
+log = logging.getLogger('urbanflow')
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    global PIPELINE, SEED_DATA
-    print("[UrbanFlow AI] Loading LightGBM Pipeline...")
-    PIPELINE = joblib.load(MODEL_PATH) 
-    print("[UrbanFlow AI] Loading 30-Day Seed Memory...")
-    SEED_DATA = pd.read_csv(SEED_PATH, index_col=0, parse_dates=True)
+async def lifespan(app):
+    app.state.store = Store(Path(os.getenv('URBANFLOW_BUNDLE', Path(__file__).resolve().parent/'bundle')))
     yield
-    print("[UrbanFlow AI] Shutting down...")
 
-app = FastAPI(title="UrbanFlow AI Engine", lifespan=lifespan)
+app = FastAPI(title='UrbanFlow AI historical forecasting', version='4.0.0', lifespan=lifespan)
+app.add_middleware(CORSMiddleware, allow_origins=os.getenv('CORS_ORIGINS','http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:4175').split(','), allow_methods=['GET','POST'], allow_headers=['Content-Type'])
 
-# --- DEPLOYMENT FIX: DYNAMIC CORS ---
-# This allows you to list your live website URL in your environment variables
-ALLOWED_ORIGINS =  [ "http://localhost:5173", "http://140.238.240.219"]
+@app.exception_handler(InputError)
+async def invalid(request, exc):
+    return JSONResponse(status_code=422, content={'detail':str(exc)})
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+@app.exception_handler(Exception)
+async def failure(request, exc):
+    log.exception('Request failed')
+    return JSONResponse(status_code=500, content={'detail':'Forecast service failed. No fallback values were generated.'})
 
-class PredictRequest(BaseModel):
-    region: int
+Region = Annotated[int, Query(ge=0,le=29)]
+class ForecastRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    region: int = Field(ge=0,le=29,strict=True)
     datetime: str
-    horizon: int = 12
+    horizon: int = Field(default=48,ge=1,le=48,strict=True)
+    mode: Literal['historical'] = 'historical'
 
+class BatchRequest(BaseModel):
+    model_config = ConfigDict(extra='forbid')
+    datetime: str
+    horizon: int = Field(default=48,ge=1,le=48,strict=True)
 
+@app.get('/health')
+def health(request: Request):
+    return {'status':'ok','model_loaded':True,'mode':'historical','candidate_id':request.app.state.store.bundle['candidate_id']}
 
+@app.get('/coverage')
+def coverage(request: Request): return request.app.state.store.coverage()
 
-@app.post("/predict")
-async def predict_demand(request: PredictRequest):
-    try:
-        print(
-            "REQUEST:",
-            request.region,
-            request.datetime,
-            request.horizon
-        )
-        target_ts = pd.to_datetime(request.datetime)
-        
-        forecast_data, weather_context = await generate_recursive_forecast(
-            region=int(request.region),
-            start_datetime=target_ts,
-            horizon=request.horizon,
-            seed_data=SEED_DATA,
-            pipeline=PIPELINE
-        )
-        
-        # Extract 48 hours of history for chart
-        history_df = SEED_DATA[SEED_DATA["region"] == int(request.region)].copy()
-        history_df = history_df[history_df.index < target_ts].tail(192)
-        history = [{"datetime": str(idx), "actual": float(row["total_pickups"])} 
-                    for idx, row in history_df.iterrows() if pd.notna(row["total_pickups"])]
-        
-                # ==========================
-        # HEATMAP DATA
-        # ==========================
-        heatmap = []
+@app.get('/regions')
+def regions(request: Request): return request.app.state.store.regions()
 
-        for region_id in range(30):
+@app.get('/model/info')
+def info(request: Request): return request.app.state.store.info()
 
-            region_history = SEED_DATA[
-                SEED_DATA["region"] == region_id
-            ]
+@app.get('/model/metrics')
+def metrics(request: Request): return request.app.state.store.metrics()
 
-            demand = (
-                float(region_history["total_pickups"].tail(24).mean())
-                if not region_history.empty
-                else 0
-            )
+@app.post('/predict')
+def predict(body: ForecastRequest, request: Request):
+    return request.app.state.store.predict(body.region,body.datetime,body.horizon)
 
-            level = "Low"
+@app.post('/predict/batch')
+def batch(body: BatchRequest, request: Request):
+    store=request.app.state.store
+    t,p=store.forecast(body.datetime,body.horizon)
+    return {'origin':t.isoformat(),'timezone':'America/New_York','forecasts':[
+        {'region':r,'forecast':[{'datetime':(t+k*__import__('pandas').Timedelta(minutes=15)).isoformat(),'prediction':round(float(v),2)} for k,v in enumerate(p[:,r])]}
+        for r in range(30)]}
 
-            if demand > 750:
-                level = "High"
-            elif demand > 400:
-                level = "Medium"
+@app.get('/historical')
+def historical(request: Request,region: Region,start: str,end: str):
+    return request.app.state.store.historical(region,start,end)
 
-            heatmap.append({
-                "id": region_id,
-                "name": f"NYC Sector {region_id:02d}",
-                "demand": round(demand),
-                "level": level
-            })
+@app.get('/insights')
+def insights(request: Request,datetime: str): return request.app.state.store.insights(datetime)
 
-        # ==========================
-        # TEMP FEATURE IMPORTANCE
-        # ==========================
-        feature_importance = [
-            {"name": "lag_1", "score": 1200},
-            {"name": "rolling_mean_24", "score": 950},
-            {"name": "hour_sin", "score": 800},
-            {"name": "region", "score": 700},
-            {"name": "temperature_2m", "score": 500}
-        ]
-
-        # ==========================
-        # TEMP ALERTS
-        # ==========================
-        alerts = [
-            {
-                "id": "SYS-001",
-                "severity": "INFO",
-                "message": "Forecast generated successfully",
-                "time": str(pd.Timestamp.now())
-            }
-        ]
-        
-        return {
-            "forecast": forecast_data,
-            "history": history,
-            "weather": weather_context,
-            "heatmap": heatmap,
-            "feature_importance": feature_importance,
-            "alerts": alerts
-        }
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+@app.get('/activity')
+def activity(request: Request,datetime: str,mode: Literal['observed','forecast']='observed'):
+    s=request.app.state.store;t=s.origin(datetime)
+    if mode=='forecast':
+        t,p=s.forecast(datetime,1);values=p[0];stamp=t
+    else:
+        values=s.wide.loc[s.wide.index<t].iloc[-1].to_numpy();stamp=t-__import__('pandas').Timedelta(minutes=15)
+    return {'datetime':stamp.isoformat(),'kind':mode,'units':'retained trips per 15 minutes','activity':[{'region':r,'activity':round(float(v),2)} for r,v in enumerate(values)]}

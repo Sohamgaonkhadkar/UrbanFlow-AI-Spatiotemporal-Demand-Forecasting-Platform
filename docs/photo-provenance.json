@@ -1,0 +1,59 @@
+{
+  "reference_site": "https://01a19b66-38d9-7e3f-bb5a-462866b1c4ba.arena.site/",
+  "retrieval": "Public embedded preview with normal iframe request context; exact JPEGs recovered from the deployed page",
+  "identity_check": "All five SHA-256 hashes match tests/imagery.spec.ts in the supplied ZIP (8)",
+  "credits_source": "Photography table in supplied ZIP (8) README; four original photo pages independently located",
+  "license_reference": "https://www.pexels.com/license/",
+  "assets": [
+    {
+      "file": "hero-manhattan.jpg",
+      "sha256": "577f4c845ee3d82520c160ca6f802b44f9915d04a47e0d9fd09b0d02f0e1d53f",
+      "bytes": 460096,
+      "width": 1920,
+      "height": 1200,
+      "photographer_credit": "Olivia Chen",
+      "original_photo_page": "https://www.pexels.com/photo/bright-lights-of-city-buildings-at-night-4978696/",
+      "retrieved_from": "https://01a19b66-38d9-7e3f-bb5a-462866b1c4ba.arena.site/?embed=true"
+    },
+    {
+      "file": "digital-twin.jpg",
+      "sha256": "ca0f60e79345f2c66367487552f5db6b7354d04dff3e671751f6acc2e70e4b3d",
+      "bytes": 572097,
+      "width": 1920,
+      "height": 1200,
+      "photographer_credit": "Charles Parker",
+      "original_photo_page": "https://www.pexels.com/photo/drone-shot-of-a-city-at-night-5847761/",
+      "retrieved_from": "https://01a19b66-38d9-7e3f-bb5a-462866b1c4ba.arena.site/?embed=true"
+    },
+    {
+      "file": "street-rain.jpg",
+      "sha256": "bb060ca0f974cbec57f6cb27db6b689e3f498e43c4c2e0cd1bf917ec8c2a5474",
+      "bytes": 388574,
+      "width": 1920,
+      "height": 1200,
+      "photographer_credit": "Jane Mir",
+      "original_photo_page": "https://www.pexels.com/photo/a-person-crossing-the-road-on-a-rainy-day-10398361/",
+      "retrieved_from": "https://01a19b66-38d9-7e3f-bb5a-462866b1c4ba.arena.site/?embed=true"
+    },
+    {
+      "file": "times-canyon.jpg",
+      "sha256": "4ecf7e7183f9aae7ca1012cc1ca5de01fcf903c9cdeba147270f7cb23b896904",
+      "bytes": 257059,
+      "width": 1920,
+      "height": 1200,
+      "photographer_credit": "Mateusz Walendzik",
+      "original_photo_page": "https://www.pexels.com/photo/advertising-on-skyscrapers-at-time-square-at-night-17096028/",
+      "retrieved_from": "https://01a19b66-38d9-7e3f-bb5a-462866b1c4ba.arena.site/?embed=true"
+    },
+    {
+      "file": "aerial-intersection.jpg",
+      "sha256": "3e7c3f0ba6790d693d703b510ae583fb3ddf97ed65cf2e2ecea4a050c067ab63",
+      "bytes": 279294,
+      "width": 1920,
+      "height": 1200,
+      "photographer_credit": "Matthis Volquardsen",
+      "original_photo_page": null,
+      "retrieved_from": "https://01a19b66-38d9-7e3f-bb5a-462866b1c4ba.arena.site/?embed=true"
+    }
+  ]
+}
