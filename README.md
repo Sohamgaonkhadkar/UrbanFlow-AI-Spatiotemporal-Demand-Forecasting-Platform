@@ -343,6 +343,31 @@ docker compose up --build
 
 The frontend is built with Node and served by Nginx, which proxies `/api/` to the Python backend. Ports are 5173 and 8000. The Python image installs pinned serving dependencies and copies the compact frozen bundle. Compose configuration was validated locally. **The local Docker engine was unavailable during integration, so container build and container execution are not claimed as tested.** The equivalent clean Python environment, production frontend build, real servers and browser integration were tested.
 
+## Vercel deployment
+
+Import this repository using the `codex/final-v4-integration-20261102` branch and
+keep the **Root Directory at the repository root**, not `frontend/`.
+`vercel.json` selects FastAPI and builds the cinematic frontend with `npm ci`
+and `npm run build`. Python is pinned to 3.14. No API keys or raw-data downloads
+are required. Leave `VITE_API_URL` unset so the frontend uses same-origin `/api`.
+
+The root `app.py` starts the original backend lifespan, mounts its API at
+`/api`, and serves `frontend/dist` at `/`. It retains the frozen model and
+observations, including their checksum verification. Vercel's FastAPI integration
+can promote the static frontend files to its CDN. The Vercel requirements use the
+same-version CPU-only XGBoost distribution to avoid shipping GPU libraries.
+Existing local and Docker commands continue to use `backend/requirements.txt`.
+
+After deployment, verify `/`, `/api/health`, `/api/coverage`, `/api/regions`, and
+an actual `POST /api/predict` before relying on the site. A successful frontend
+build alone does not verify hosted model inference. Requests may have a cold
+start; the function timeout is 300 seconds. The target is still the documented
+historical June benchmark, not current live demand.
+
+References: [Vercel FastAPI deployment](https://vercel.com/docs/frameworks/backend/fastapi),
+[Python runtime](https://vercel.com/docs/functions/runtimes/python), and
+[XGBoost CPU installation](https://xgboost.readthedocs.io/en/stable/install.html).
+
 ## Troubleshooting
 
 | Symptom | Action |

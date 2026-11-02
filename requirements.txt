@@ -1,0 +1,13 @@
+# Vercel/Linux CPU serving; preserve the frozen model's dependency versions.
+-c backend/requirements-resolved.txt
+fastapi==0.162.0
+uvicorn==0.54.0
+numpy==2.5.4
+pandas==3.1.0
+scipy==1.18.1
+scikit-learn==1.9.1
+xgboost-cpu==3.4.1
+holidays==0.107
+joblib==1.6.0
+pyarrow==25.0.1
+tzdata==2026.6
