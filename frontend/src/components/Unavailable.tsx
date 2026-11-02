@@ -1,0 +1,3 @@
+export default function Unavailable({title,error,retry}:{title:string;error:string|null;retry:()=>void}){
+ return <div className="pb-20"><header className="border-b border-white/10 px-5 pb-7 pt-8 sm:px-8"><h1 className="text-signal">{title}</h1><p className="mt-3 text-steel">Historical NYC forecasting · America/New_York</p></header><section className="m-7 min-h-72 border border-white/12 bg-graphite p-7"><p role={error?'alert':'status'} className="text-chalk">{error||'Loading genuine historical observations and model output…'}</p>{error&&<button className="mt-5 border border-signal p-3 text-signal" onClick={retry}>Retry forecast</button>}</section></div>
+}

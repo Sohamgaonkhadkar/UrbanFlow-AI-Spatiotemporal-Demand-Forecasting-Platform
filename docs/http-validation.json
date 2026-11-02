@@ -1,0 +1,28 @@
+{
+  "valid_predictions": 150,
+  "invalid_rejections": 8,
+  "latency_ms": {
+    "uncached_joint_origin": 848.6416000523604,
+    "cached_http_median": 12.018400011584163,
+    "cached_http_max": 17.187000019475818
+  },
+  "coverage": {
+    "mode": "historical",
+    "timezone": "America/New_York",
+    "step_minutes": 15,
+    "region_count": 30,
+    "observed_start": "2016-01-01T00:00:00-05:00",
+    "observed_end": "2016-06-30T23:45:00-04:00",
+    "origin_min": "2016-05-31T22:00:00-04:00",
+    "origin_max": "2016-07-01T00:00:00-04:00",
+    "full_12h_actuals_origin_max": "2016-06-30T12:00:00-04:00",
+    "default_origin": "2016-06-15T23:00:00-04:00",
+    "training_cutoff": "2016-05-31T22:00:00-04:00",
+    "history_steps": 1536,
+    "max_horizon": 48,
+    "retained_trip_count": 66874467,
+    "observed_rows": 524040,
+    "weather_used": false,
+    "prediction_intervals_available": false
+  }
+}

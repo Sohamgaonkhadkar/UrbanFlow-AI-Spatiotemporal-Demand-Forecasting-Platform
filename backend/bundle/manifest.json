@@ -1,0 +1,11 @@
+{
+  "source": "Frozen v4 artifacts; copied without retraining or modification",
+  "sha256": {
+    "candidate_v4.joblib": "7b96eaf0f9c9bec866e29677f9df9cb7647a99619c1c4589c35632a8f845c2c4",
+    "feature_schema.json": "ae442d4b821c682039053dd16d3ca130ef351aea189337484b6da86cbf690943",
+    "final_test_results.json": "c2876de65d067b81a950d95b4cc1d1882f7af5169690736a063167f10341b122",
+    "geography.json": "863eb156b6354058ad0cc7c066c7b59c628d5da7fc705780b760ef0322e5647c",
+    "inference_observations.parquet": "6086fe6369d5149edb7cfbc9afbe634e5197c9e78c6d07723e04121abb341434",
+    "selection_freeze.json": "99db31033ee432451c049c95a369381440352aaa751b37f95c1b075aee024658"
+  }
+}

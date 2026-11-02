@@ -1,235 +1,155 @@
-# UrbanFlow AI: Full-Stack Spatiotemporal Forecasting Engine
+# UrbanFlow AI · Historical Forecasting Platform
 
-## 1. Executive Summary
+UrbanFlow AI connects a cinematic React interface to a frozen, validated spatiotemporal demand model. It forecasts retained completed NYC Yellow Taxi trips across 30 fitted regions at 15-minute resolution, using genuine 2016 observations. The homepage, Overview, Forecast Studio, City Explorer, Demand Insights and Model Intelligence share the same model and data contract.
 
-UrbanFlow AI is an end-to-end, full-stack spatiotemporal forecasting platform designed for real-time urban mobility demand prediction. Powered by a production-grade LightGBM forecasting engine trained on over **33 million NYC taxi trip records**, the platform combines advanced machine learning, dynamic feature engineering, live weather integration, and scalable cloud deployment to deliver high-resolution demand forecasts across New York City.
+This repository is the serving application. The [research repository](https://github.com/Sohamgaonkhadkar/UBER-DEMAND-PREDICTION) contains notebooks, experiments, frozen evaluation evidence and acquisition code. No training is performed on application startup or during a prediction request.
 
-The system features a production-ready **FastAPI** backend, a responsive **React/Vite** telemetry dashboard, and a recursive forecasting pipeline capable of generating multi-step demand predictions while preserving temporal dependencies.
+![UrbanFlow cinematic homepage](docs/screenshots/home.png)
 
-> Built and deployed a full-stack spatiotemporal forecasting platform serving real-time taxi demand predictions across **30 NYC spatial clusters**, trained on **33M+ trip records** and achieving **90.59% forecasting accuracy (WAPE-based)** on unseen test data.
+## Validated model
 
-## Key Features
+The selected artifact is `backend/bundle/candidate_v4.joblib`, candidate `v4_calendar_feedback`: an XGBoost component with 599 boosted trees, a training-only calendar profile and recursive calendar feedback. Each final blended prediction is appended before the next step. The fitted ordered schema has **46 features**; the bundle's legacy top-level feature union is not used for inference.
 
-* Trained on **33+ million NYC taxi trip records**
-* Recursive multi-step demand forecasting
-* Real-time weather-aware inference using Open-Meteo
-* 30-cluster spatial demand modeling
-* Dynamic feature engineering with lag and rolling statistics
-* Production-ready FastAPI backend
-* Interactive React-based telemetry dashboard
-* Spatial demand heatmap visualization
-* KPI monitoring and operational analytics
-* Feature importance and model explainability tools
-* Dockerized cloud deployment on Oracle Cloud Infrastructure (OCI)
-* End-to-end full-stack machine learning system
+| Cumulative horizon | Steps | June 2016 WAPE |
+|---|---:|---:|
+| 15 minutes | 1 | 9.7507% |
+| 1 hour | 4 | 10.1260% |
+| 3 hours | 12 | 11.1766% |
+| 6 hours | 24 | 11.4557% |
+| 12 hours | 48 | 11.6086% |
 
+The full 12-hour evaluation has MAE **14.5595**, RMSE **23.9458**, R² **0.960489**, and bias **+2.5667%**. It covers 55 non-overlapping origins spaced 13 elapsed hours apart, 30 regions and 48 leads: **79,200 predictions**. WAPE is `100 × sum(abs(prediction − actual)) / sum(abs(actual))`, an error measure, not classification accuracy. The individual lead-48 WAPE is **13.5862%**, distinct from cumulative 12-hour WAPE. The moving-block bootstrap 95% interval for cumulative WAPE is **10.7556–12.5330%**; it is an interval for an evaluation metric, not a prediction band for a trip count.
 
----
+The exact ledger is exposed at `/model/metrics` and checked in at `backend/bundle/final_test_results.json`. Tests independently recompute all five cumulative metric sets from sealed June predictions and compare portable runtime forecasts with archived predictions. This integration does not select another model or reuse June for tuning.
 
-## 2. Live Deployment & System Status
+## Run locally
 
-* **Live Application:** [UrbanFlow AI Dashboard](http://140.238.240.219/index.html)
-* **Backend API:** `http://140.238.240.219:8000`
+Use Python **3.14** and Node.js **22.12+ or 24**. Both model and observations are included in Git: no raw-data download, API key, research checkout or training job is needed. Only load the trusted checked-in joblib bundle; joblib is an executable serialization format.
 
-### 2.1 Operational Constraints & Infrastructure Notes
-* **Oracle Cloud Infrastructure (OCI):** This platform is currently deployed on Oracle Cloud. Due to limited cloud credits and resource allocation, the server instance may enter hibernation or experience downtime in the future. 
-* **API Forecasting Limit:** The system utilizes the Open-Meteo API for real-time meteorological feature engineering. Consequently, the live web application will only generate valid predictions for the **current date and up to 14 days into the future**. Selecting dates beyond this horizon will result in weather data fetch failures.
+From this repository root, in PowerShell:
 
-### 2.2 System Visuals
-*(Note:The public demo may occasionally be unavailable due to infrastructure maintenance., please refer to the media below for system functionality.)*
+```powershell
+py -3.14 -m venv .venv
+.venv\Scripts\python.exe -m pip install -r backend/requirements-dev.txt
+.venv\Scripts\python.exe -m uvicorn main:app --app-dir backend --host 127.0.0.1 --port 8000
+```
 
-### Dashboard Preview
+In a second terminal:
 
-![UrbanFlow AI Dashboard](https://github.com/user-attachments/assets/67534e54-2d07-40ba-8c0a-9bb611bf05f5)
+```powershell
+cd frontend
+npm ci
+npm run dev -- --host 127.0.0.1 --port 5173
+```
 
-*The UrbanFlow AI primary telemetry dashboard illustrating real-time inference, spatial density, and system KPIs.*
+Open [the local application](http://127.0.0.1:5173). Vite proxies `/api` to `127.0.0.1:8000`. No environment variable is required. `frontend/.env.example` documents the default; `VITE_API_URL` can point to a separately hosted API when explicitly configured. For a direct cross-origin API URL, configure `CORS_ORIGINS` on the backend. Linux/macOS use `.venv/bin/python` in place of the Windows Python path. API documentation is at [localhost:8000/docs](http://127.0.0.1:8000/docs).
 
-### System Demonstration
+## Historical coverage and timestamp semantics
 
-https://github.com/user-attachments/assets/6c0cd1eb-78aa-4e55-aa77-2dc26a57d7ca
+| Property | Supported value |
+|---|---|
+| Timezone | America/New_York |
+| Observations | January 1, 2016 00:00 through June 30, 2016 23:45 |
+| Training labels | January 17 through May 31, 2016 21:45 |
+| Training cutoff, exclusive | May 31, 2016 22:00 |
+| Valid forecast origins | May 31, 2016 22:00 through July 1, 2016 00:00 |
+| Complete 12-hour comparison observations | Origins through June 30, 2016 12:00 |
+| Required context | 1,536 consecutive quarter-hour bins, all 30 regions |
+| Supported horizon | Integer 1–48 quarter-hour steps |
 
-*Live demonstration of UrbanFlow AI's recursive forecasting engine, telemetry dashboard, KPI monitoring system, and spatial demand visualization.*
+The first forecast timestamp equals the origin and represents its next 15-minute bin. Context ends strictly before the origin. An origin at the observation boundary can forecast subsequent targets without claiming they have observed outcomes. The default date comes from `/coverage`; the application's current clock is not the data timestamp. Coverage is derived at runtime from the training cutoff, available history, and data end, not a weather service's availability.
 
----
+Naive timestamps are interpreted as New York civil time; explicit offsets are accepted and normalized. Ambiguous/nonexistent DST timestamps, non-quarter-hour values, unsupported horizons, out-of-range origins and real-time mode receive validation errors. No current-2026 forecasts are supported by these 2016 artifacts.
 
-## 3. Full-Stack System Architecture
+## Data provenance and scope
 
-The architecture is strictly decoupled, separating the heavy machine learning inference workloads from the client-side rendering engine.
+The observation panel aggregates original coordinate-bearing 2016 Yellow Taxi records, including June from the NYC Open Data dataset `uacg-pexx`. It preserves the research target and fixed scaler/K-means mapping. Retained trips satisfy **both pickup and dropoff** latitude `40.60–40.85`, longitude `−74.05–−73.70`, fare `$0.50–81.00` and trip distance `0.25–24.43` miles. Counts are not all taxi requests, all NYC pickups, or latent unmet demand. Fare and trip-completion filters require post-trip information; immediate availability of a completed count is an idealized benchmark assumption, not a certified live feed.
+
+The dense observation grid retains zero bins under a source-completeness assumption. Raw feed outages cannot be certified from an aggregate count panel. The earlier DST quarantine and source processing choices remain documented in the research report. No fabricated observations are inserted to make an incomplete inference context pass.
+
+Region IDs are the fitted model's IDs. `/regions` computes each centroid as `scaled_center × scaler_scale + scaler_mean`, retaining the original longitude/latitude order. Generic **NYC Sector 00–29** labels avoid attaching unverified neighborhoods to cluster IDs. These are point centroids; authoritative cluster polygons are unavailable. The map's cartographic/schematic backgrounds do not define model boundaries.
+
+## Application behavior
+
+- **Homepage and Overview:** genuine history, model forecasts and observed regional activity; no synthetic ticker, weather or demand fallback.
+- **Forecast Studio:** region, date, quarter-hour and horizon controls call the frozen model. History precedes the submitted origin. CSV timestamps and rounded forecast values match the displayed/API values.
+- **City Explorer:** search and selection across all 30 verified centroids, pan/zoom/reset, and explicitly labeled observed versus forecast activity. Observed activity is the bin immediately before the origin; forecast activity is the first predicted bin at the origin. The overlay shows its actual timestamp. External tile failure is labeled and falls back to schematic geography, while demand values still come from the API.
+- **Demand Insights:** two genuine regional forecasts at one origin/horizon, derived summaries and genuine preceding observations. Past versus predicted summary bars refer to separate intervals, not a forecast-accuracy comparison.
+- **Model Intelligence:** real backend metadata and verified June metrics. Weather, validated whole-model feature attribution, calibrated prediction intervals and operational alerts are unavailable.
+
+The exact supplied cinematic ZIP supplies the assets, original CSS, scene sequence, typography, chart components and animation logic. Corrections change data, labels, loading/errors and functional controls. Before/after browser captures and asset hashes are in `docs/visual-baseline`, `docs/screenshots`, `docs/visual-comparison.png` and `docs/template-design-manifest.json`. Original template test sources are archived in `docs/original-template-tests`; adapted behavior tests and genuine-data acceptance tests run from `frontend/tests`.
+
+![Forecast Studio](docs/screenshots/forecast.png)
+![City Explorer](docs/screenshots/explorer.png)
+
+## API
+
+| Method | Route | Purpose |
+|---|---|---|
+| GET | `/health` | Loaded model and historical service status |
+| GET | `/coverage` | Dynamic date limits, default origin and capability flags |
+| GET | `/regions` | 30 inverse-transformed fitted centroids |
+| GET | `/model/info` | Architecture, fitted schema, target and limitations |
+| GET | `/model/metrics` | Verified June evaluation ledger |
+| POST | `/predict` | One region's forecast and genuine preceding history |
+| POST | `/predict/batch` | All 30 trajectories from one shared origin |
+| GET | `/activity?datetime=…&mode=observed` | Previous observed bin across all regions |
+| GET | `/activity?datetime=…&mode=forecast` | First predicted bin across all regions |
+| GET | `/historical?region=…&start=…&end=…` | Genuine observations, end exclusive, maximum 4,096 bins |
+| GET | `/insights?datetime=…` | Actual hourly and regional summaries of the preceding 16 days |
+
+```json
+{"region": 3, "datetime": "2016-06-15T12:00:00-04:00", "horizon": 48, "mode": "historical"}
+```
+
+`/predict` returns `forecast`, `history`, `heatmap`, `heatmap_datetime`, `heatmap_kind` and explicit capability metadata. Weather and feature importance are `null`; operational alerts are an empty list with availability `false`. Errors return an appropriate HTTP status and safe message, never replacement values or internal filesystem paths.
+
+```mermaid
+flowchart LR
+  UI[Exact cinematic React UI] -->|same-origin /api| API[FastAPI]
+  API --> Coverage[Verified coverage and centroids]
+  API --> Context[Strictly preceding 16-day context]
+  Context --> Model[Frozen XGBoost and calendar recursion]
+  Model --> Cache[Bounded 32-origin joint cache]
+  Cache --> Result[30 consistent regional trajectories]
+  Result --> UI
+```
+
+Each uncached origin computes a single full 48-step joint trajectory. Requests for different regions or shorter horizons reuse its prefix. A lock prevents duplicate concurrent calculations; the cache is bounded and uses immutable returned copies. CPU work executes in FastAPI's worker thread pool. Bundle hashes and the fitted ordered feature schema are validated during startup.
+
+## Validation
+
+```powershell
+.venv\Scripts\python.exe -m pytest -q
+cd frontend
+npm run typecheck
+npm run build
+npx playwright install chromium
+# Keep the real backend running on 8000; Playwright starts/reuses Vite on 4175.
+npm run test:e2e
+```
+
+Tests cover sealed score recomputation, archived prediction parity, every region and supported UI horizon, causal future-data poisoning, timestamp/DST validation, incomplete requests, explicit failures, CSV value equality, map interactions, route history, mobile layout, and the cinematic scroll/reduced-motion behavior. See `FINAL_INTEGRATION_REPORT.md` for the actual executed results and limitations.
+
+## Containers
+
+```powershell
+docker compose config --quiet
+docker compose up --build
+```
+
+The frontend is built with Node and served by Nginx, which proxies `/api/` to the Python backend. Ports are 5173 and 8000. The Python image installs pinned serving dependencies and copies the compact frozen bundle. Compose configuration was validated locally. **The local Docker engine was unavailable during integration, so container build and container execution are not claimed as tested.** The equivalent clean Python environment, production frontend build, real servers and browser integration were tested.
+
+## Repository layout and release scope
 
 ```text
-[ Client Browser (React + Vite) ]
-          │
-          ▼ (REST API / JSON)
-[ FastAPI Asynchronous Server ]
-          │
-          ├──────────────────────────────┐
-          ▼                              ▼
-[ Feature Engineering ]        [ External Weather API ]
-(Lags, Rolling Means)             (Open-Meteo)
-          │                              │
-          └──────────────┬───────────────┘
-                         ▼
-           [ LightGBM Inference Engine ]
-             (Recursive Prediction Loop)
-```
-## 4. Intelligence Layer (Backend)
-
-The backend is built with **FastAPI** and serves a production-ready LightGBM forecasting engine through asynchronous REST APIs. On startup, the application loads the serialized model and historical demand matrix into memory to minimize inference latency.
-
-### Core Capabilities
-
-* Recursive multi-step demand forecasting
-* Real-time weather-aware predictions via Open-Meteo
-* Dynamic reconstruction of 76 engineered features
-* High-performance asynchronous request handling
-* Memory-optimized inference pipeline
-
-### Recursive Forecasting Strategy
-
-Unlike standard single-step forecasting systems, UrbanFlow AI performs recursive forecasting. Each predicted demand value is fed back into the historical feature matrix and reused as a lag feature for the subsequent prediction step. This enables forecasting across flexible horizons while preserving temporal dependencies.
-
-### Dynamic Feature Engineering
-
-The backend reconstructs the same feature space used during training, including:
-
-* Temporal cyclical features (`hour_sin`, `hour_cos`)
-* Lag-based demand indicators
-* Rolling statistical features
-* Weather-derived variables
-* LightGBM-compatible categorical encodings
-
----
-
-## 5. Telemetry Dashboard (Frontend)
-
-The frontend is developed using **React**, **Vite**, **Tailwind CSS**, **Recharts**, and **Framer Motion** to provide a responsive real-time operational dashboard.
-
-### Dashboard Modules
-
-* **Forecast Visualization:** Interactive demand trajectory displaying historical observations and future projections.
-* **KPI Monitoring:** Immediate operational metrics including demand forecasts, weather conditions, and active region selection.
-* **Spatial Heatmap:** Regional demand intensity visualization across 30 spatial clusters.
-* **Feature Importance:** Model transparency module highlighting key prediction drivers.
-* **Weather Integration:** Real-time meteorological context used during forecasting.
-
-The dashboard transforms machine learning outputs into actionable operational intelligence through interactive visual analytics.
-
----
-
-## 6. Infrastructure & Deployment
-
-UrbanFlow AI is containerized and deployed on **Oracle Cloud Infrastructure (OCI)**.
-
-### Technology Stack
-
-| Layer                 | Technology                |
-| --------------------- | ------------------------- |
-| Frontend              | React, Vite, Tailwind CSS |
-| Backend               | FastAPI                   |
-| ML Engine             | LightGBM                  |
-| Visualization         | Recharts                  |
-| Animation             | Framer Motion             |
-| Weather Data          | Open-Meteo API            |
-| Deployment            | Docker, OCI               |
-| Dependency Management | Nixpacks                  |
-
-### Deployment Features
-
-* Dockerized application architecture
-* OCI cloud deployment
-* Nixpacks-based dependency management
-* OpenMP support for LightGBM execution
-* Secure CORS configuration
-* Environment-based configuration management
-
-
----
-## 7. Model Performance Analytics
-
-The final production-grade **LightGBM forecasting pipeline**, tracked and versioned using **MLflow**, was evaluated on temporally separated unseen test data to simulate real-world forecasting conditions.
-
-### Performance Metrics
-
-| Metric                                        | Score      | Operational Interpretation                                                                                 |
-| --------------------------------------------- | ---------- | ---------------------------------------------------------------------------------------------------------- |
-| **MAE (Mean Absolute Error)**                 | **12.41**  | Average forecasting deviation remains limited to approximately 12 vehicle allocations per spatial cluster. |
-| **RMSE (Root Mean Square Error)**             | **20.04**  | Demonstrates strong robustness against demand surges and extreme variance scenarios.                       |
-| **R² Score**                                  | **0.9764** | The feature engineering pipeline explains **97.64%** of observed urban mobility demand variance.           |
-| **WAPE (Weighted Absolute Percentage Error)** | **9.41%**  | Equivalent to an overall forecasting accuracy of approximately **90.59%** across the evaluation horizon.   |
-
-## Research & Training Pipeline
-
-The complete exploratory analysis, feature engineering workflow, model experimentation process, and MLflow training pipeline are available in the companion repository:
-
-**Training Repository:**
-https://github.com/Sohamgaonkhadkar/UBER-DEMAND-PREDICTION
-
-This production deployment repository focuses on model serving, recursive forecasting, API infrastructure, and full-stack application deployment.
-
----
-
-## 8. Local Development Setup
-
-To run this platform locally for further development:
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/Sohamgaonkhadkar/UrbanFlow-AI-project-ready-for-deployment.git
-cd UrbanFlow-AI-project-ready-for-deployment
+backend/                 FastAPI, inference-only model compatibility modules
+  bundle/                Frozen artifact, schema, genuine panel, geography, metrics, hashes
+  tests/                 Actual-artifact/API tests and sealed numeric evidence
+frontend/                Original cinematic React/TypeScript/Vite application
+docs/                    Browser screenshots, design hashes and original test sources
+compose.yaml             Local two-service deployment definition
+FINAL_INTEGRATION_REPORT.md
 ```
 
-### 2. Initialize the Backend (FastAPI)
-
-```bash
-pip install -r requirements.txt
-uvicorn main:app --reload --port 8000
-```
-
-### 3. Initialize the Frontend (Vite)
-
-```bash
-# Open a new terminal instance
-npm install
-npm run dev
-```
-
----
-## Project Structure
-
-UrbanFlow-AI/
-│
-├── backend/
-│   ├── main.py                    # FastAPI entrypoint
-│   ├── forecasting_service.py     # Recursive forecasting engine
-│   ├── feature_engineering.py     # Feature generation pipeline
-│   ├── weather_service.py         # Open-Meteo integration
-│   ├── data/
-│   └── services/
-│
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Dashboard.jsx
-│   │   │   ├── ForecastChart.jsx
-│   │   │   ├── DemandHeatmap.jsx
-│   │   │   ├── KPISection.jsx
-│   │   │   └── FeatureImportance.jsx
-│   │   │
-│   │   ├── services/
-│   │   │   └── api.js
-│   │   │
-│   │   ├── styles/
-│   │   └── App.jsx
-│   │
-│   └── index.html
-│
-├── Dockerfile
-├── requirements.txt
-├── nixpacks.toml
-└── README.md
-
-## Author
-
-Engineered and developed by **Soham Mahesh Gaonkhadkar**, Department of Chemical Engineering, *Indian Institute of Technology Kharagpur*.
-
+No raw multi-million-trip source files, research dependencies, intermediate checkpoints, `node_modules`, Python environments or secrets belong in the serving repository. Historical versions remain in Git history. Integration is pushed to a `codex/` branch, with no default-branch update, force push or live cloud change. The June benchmark is suitable for historical analysis and demonstrations of this defined target; current operations require a compatible as-of data feed and a new validation exercise.
